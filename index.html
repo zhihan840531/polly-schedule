@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>教室行事曆 · 補教工作台</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi5pWZ5a6k6KGM5LqL5pu4Iiwic2hvcnRfbmFtZSI6IuihjOS6i+abuCIsInN0YXJ0X3VybCI6Ii4vIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI0ZCRjhGMiIsInRoZW1lX2NvbG9yIjoiIzFGMkE0NCJ9">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --ink:#1F2A44;
+    --paper:#FBF8F2;
+    --paper-line:#E4DCC9;
+    --amber:#E8A33D;
+    --grid-blue:#6E8FB0;
+    --stamp-red:#C1443C;
+    --sub-green:#4C8067;
+    --text:#2B2B2B;
+    --text-soft:#6b6558;
+    --card:#ffffff;
+    --radius:14px;
+    --shadow:0 2px 10px rgba(31,42,68,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0/100% 28px,
+      var(--paper);
+    color:var(--text);
+    font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",-apple-system,sans-serif;
+    padding-bottom:76px;
+  }
+  h1,h2,h3{
+    font-family:"Noto Serif TC","PingFang TC",serif;
+    letter-spacing:.02em;
+    margin:0 0 8px;
+  }
+  header.top{
+    background:var(--ink);
+    color:#fff;
+    padding:16px 18px 14px;
+    position:sticky;top:0;z-index:20;
+    box-shadow:var(--shadow);
+  }
+  header.top .row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  header.top h1{color:#fff;font-size:1.15rem;margin:0;display:flex;align-items:center;gap:8px;}
+  header.top .sub{font-size:.72rem;opacity:.65;margin-top:2px;font-family:inherit;}
+  .conndot{width:9px;height:9px;border-radius:50%;background:#888;display:inline-block;}
+  .conndot.ok{background:#7FC29B;}
+  .conndot.bad{background:var(--stamp-red);}
+
+  nav.tabs{
+    display:flex;gap:4px;overflow-x:auto;padding:0 10px 12px;
+  }
+  nav.tabs button{
+    flex:0 0 auto;
+    background:rgba(255,255,255,.08);
+    color:#fff;border:none;border-radius:999px;
+    padding:7px 14px;font-size:.82rem;cursor:pointer;
+    white-space:nowrap;
+    font-family:inherit;
+  }
+  nav.tabs button.active{background:var(--amber);color:#2B2100;font-weight:600;}
+
+  main{max-width:900px;margin:0 auto;padding:14px 12px 30px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card h2{font-size:1.02rem;color:var(--ink);}
+  .muted{color:var(--text-soft);font-size:.85rem;}
+
+  /* calendar */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cal-head .navbtn{
+    background:var(--paper);border:1px solid var(--paper-line);
+    border-radius:8px;width:34px;height:34px;font-size:1rem;cursor:pointer;
+  }
+  .cal-head .ym{font-family:"Noto Serif TC",serif;font-size:1.15rem;color:var(--ink);font-weight:700;}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:.72rem;color:var(--text-soft);margin-bottom:4px;}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .day{
+    min-height:64px;border-radius:9px;border:1px solid var(--paper-line);
+    background:#fff;padding:4px 4px 3px;cursor:pointer;position:relative;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .day.other{opacity:.32;}
+  .day.today{border:2px solid var(--amber);}
+  .day.selected{outline:2px solid var(--grid-blue);}
+  .day .num{font-size:.75rem;color:var(--text-soft);font-weight:600;}
+  .badges{display:flex;flex-wrap:wrap;gap:2px;}
+  .badge{
+    font-size:.6rem;border-radius:5px;padding:1px 4px;font-weight:700;color:#fff;line-height:1.5;
+  }
+  .badge.leave{background:var(--stamp-red);}
+  .badge.sub{background:var(--sub-green);}
+  .badge.plan{background:var(--grid-blue);}
+  .badge.event{background:var(--amber);color:#2B2100;}
+  .badge.todo{background:#9b8bb4;}
+
+  .stamp{
+    display:inline-block;
+    transform:rotate(-3deg);
+    border:2px solid var(--stamp-red);
+    color:var(--stamp-red);
+    font-weight:800;
+    font-size:.68rem;
+    padding:1px 7px;
+    border-radius:6px;
+    font-family:"Noto Serif TC",serif;
+  }
+  .stamp.sub{border-color:var(--sub-green);color:var(--sub-green);}
+
+  /* day detail */
+  #dayDetail{border-top:3px solid var(--amber);}
+  .item-row{
+    border:1px solid var(--paper-line);border-radius:10px;padding:9px 11px;margin-bottom:7px;
+    background:var(--paper);font-size:.86rem;
+  }
+  .item-row b{color:var(--ink);}
+  .item-row .meta{color:var(--text-soft);font-size:.76rem;margin-top:2px;}
+
+  label{display:block;font-size:.78rem;color:var(--text-soft);margin:9px 0 3px;}
+  input,select,textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--paper-line);border-radius:9px;
+    font-size:.9rem;font-family:inherit;background:#fff;color:var(--text);
+  }
+  textarea{min-height:64px;resize:vertical;}
+  button.btn{
+    background:var(--ink);color:#fff;border:none;border-radius:9px;
+    padding:9px 16px;font-size:.86rem;cursor:pointer;margin-top:10px;font-family:inherit;
+  }
+  button.btn.amber{background:var(--amber);color:#2B2100;font-weight:700;}
+  button.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--paper-line);}
+  button.btn.danger{background:var(--stamp-red);}
+  button.btn.green{background:var(--sub-green);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .lp-callout{
+    border:1px dashed var(--grid-blue);background:#F1F5F9;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:.85rem;
+  }
+  .lp-callout b{color:var(--grid-blue);}
+
+  table.simple{width:100%;border-collapse:collapse;font-size:.85rem;}
+  table.simple th{text-align:left;color:var(--text-soft);font-weight:600;font-size:.72rem;padding:4px 6px;border-bottom:1px solid var(--paper-line);}
+  table.simple td{padding:6px 6px;border-bottom:1px solid var(--paper-line);vertical-align:top;}
+  .pill{border-radius:999px;padding:2px 9px;font-size:.72rem;font-weight:700;display:inline-block;}
+  .pill.pending{background:#FBE7D6;color:#A34E12;}
+  .pill.arranged{background:#DDEBF7;color:#2E5D8A;}
+  .pill.done{background:#DCEEE2;color:#2E6B49;}
+
+  footer.bottomnav{
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--ink);display:flex;justify-content:space-around;
+    padding:6px 2px calc(6px + env(safe-area-inset-bottom));
+    box-shadow:0 -2px 10px rgba(0,0,0,.15);z-index:20;
+  }
+  footer.bottomnav button{
+    background:none;border:none;color:#cfd6e6;font-size:.62rem;
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:4px 6px;font-family:inherit;cursor:pointer;
+  }
+  footer.bottomnav button .ic{font-size:1.15rem;}
+  footer.bottomnav button.active{color:var(--amber);}
+
+  #setupGate{
+    max-width:480px;margin:40px auto;padding:0 16px;
+  }
+  .checklist{font-size:.85rem;line-height:1.9;}
+  .kv{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0;}
+  .close-x{position:absolute;top:8px;right:10px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--text-soft);}
+  #overlay{display:none;position:fixed;inset:0;background:rgba(31,42,68,.45);z-index:40;align-items:flex-end;justify-content:center;}
+  #overlay.show{display:flex;}
+  #overlayCard{
+    background:#fff;border-radius:16px 16px 0 0;max-width:520px;width:100%;
+    max-height:86vh;overflow:auto;padding:18px;position:relative;
+  }
+  @media(min-width:700px){
+    #overlay{align-items:center;}
+    #overlayCard{border-radius:16px;}
+  }
+  .todo-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--paper-line);}
+  .todo-item input[type=checkbox]{width:auto;margin-top:3px;}
+  .todo-item .t{flex:1;font-size:.88rem;}
+  .todo-item .t.done{text-decoration:line-through;color:var(--text-soft);}
+  .section-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+  .section-tabs button{
+    background:var(--paper);border:1px solid var(--paper-line);border-radius:999px;
+    padding:5px 12px;font-size:.78rem;cursor:pointer;font-family:inherit;
+  }
+  .section-tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+</style>
+</head>
+<body>
+
+<div id="setupGate" style="display:none;">
+  <div class="card">
+    <h2>🔌 連接 Supabase 資料庫</h2>
+    <p class="muted">教案、點名表、請假紀錄都會長期存在你自己的 Supabase 專案裡。第一次使用請先在 Supabase 建立專案並執行 schema.sql，再把下面兩個值貼進來（只需設定一次，存在這台裝置的瀏覽器裡）。</p>
+    <label>Supabase Project URL</label>
+    <input id="gateUrl" placeholder="https://xxxx.supabase.co">
+    <label>Supabase anon public key</label>
+    <input id="gateKey" placeholder="eyJhbGciOi...">
+    <button class="btn amber" onclick="saveConnection()">儲存並開始使用</button>
+    <p class="muted" id="gateMsg" style="margin-top:8px;"></p>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+<header class="top">
+  <div class="row">
+    <div>
+      <h1>📚 教室行事曆</h1>
+      <div class="sub"><span class="conndot" id="connDot"></span> <span id="connLabel">連線中…</span></div>
+    </div>
+    <button class="btn ghost" style="margin:0;color:#fff;border-color:rgba(255,255,255,.3);" onclick="showView('settings')">⚙️ 設定</button>
+  </div>
+  <nav class="tabs">
+    <button data-v="calendar" class="active" onclick="showView('calendar')">📅 行事曆</button>
+    <button data-v="leaves" onclick="showView('leaves')">🙋 學生請假</button>
+    <button data-v="subs" onclick="showView('subs')">👩‍🏫 老師代課</button>
+    <button data-v="todos" onclick="showView('todos')">✅ 待辦提醒</button>
+    <button data-v="plans" onclick="showView('plans')">📖 教案</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- 行事曆 -->
+  <section id="view-calendar" class="view active">
+    <div class="card">
+      <div class="cal-head">
+        <button class="navbtn" onclick="changeMonth(-1)">‹</button>
+        <div class="ym" id="ymLabel"></div>
+        <button class="navbtn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+      <div class="grid" id="calGrid"></div>
+      <p class="muted" style="margin-top:10px;">🙋紅=學生請假　👩‍🏫綠=老師代課　📖藍=教案　🔶黃=其他行程　🟣紫=待辦</p>
+    </div>
+
+    <div class="card" id="dayDetail" style="display:none;">
+      <button class="close-x" onclick="document.getElementById('dayDetail').style.display='none'">✕</button>
+      <h2 id="ddTitle">日期</h2>
+      <div id="ddBody"></div>
+      <div class="kv">
+        <button class="btn" onclick="openLeaveForm()">＋學生請假</button>
+        <button class="btn green" onclick="openSubForm()">＋老師代課</button>
+        <button class="btn ghost" onclick="openPlanForm()">＋教案</button>
+        <button class="btn ghost" onclick="openEventForm()">＋其他行程</button>
+      </div>
+      <label>📓 今日工作日誌／備忘</label>
+      <textarea id="ddLog" placeholder="今天處理了什麼？想到什麼要記住的事都可以寫在這裡…"></textarea>
+      <button class="btn ghost" onclick="saveDailyLog()">儲存日誌</button>
+    </div>
+  </section>
+
+  <!-- 學生請假 -->
+  <section id="view-leaves" class="view">
+    <div class="card">
+      <h2>🙋 學生請假登記</h2>
+      <p class="muted">登記後會自動帶出當天班級的教案進度，方便你知道要幫學生補什麼。</p>
+      <button class="btn amber" onclick="openLeaveForm()">＋ 新增請假</button>
+    </div>
+    <div class="card">
+      <div class="section-tabs">
+        <button class="active" data-f="未補課" onclick="filterLeaves('未補課',this)">未補課</button>
+        <button data-f="已安排" onclick="filterLeaves('已安排',this)">已安排</button>
+        <button data-f="已完成" onclick="filterLeaves('已完成',this)">已完成</button>
+        <button data-f="all" onclick="filterLeaves('all',this)">全部</button>
+      </div>
+      <div id="leaveList"></div>
+    </div>
+  </section>
+
+  <!-- 老師代課 -->
+  <section id="view-subs" class="view">
+    <div class="card">
+      <h2>👩‍🏫 老師請假／代課登記</h2>
+      <p class="muted">記錄請假老師、代課老師、班級與代課時數。</p>
+      <button class="btn amber" onclick="openSubForm()">＋ 新增代課登記</button>
+    </div>
+    <div class="card"><div id="subList"></div></div>
+  </section>
+
+  <!-- 待辦 -->
+  <section id="view-todos" class="view">
+    <div class="card">
+      <h2>✅ 待辦提醒</h2>
+      <p class="muted">可設定「每週固定」重複提醒（例如每週五準備下週教案、每月月底核對點名表），養成紀錄習慣。</p>
+      <button class="btn amber" onclick="openTodoForm()">＋ 新增待辦</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size:.9rem;color:var(--stamp-red);">⏰ 今天 / 已過期</h3>
+      <div id="todoOverdue"></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:.9rem;color:var(--ink);">🔁 固定重複提醒</h3>
+      <div id="todoRecurring"></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:.9rem;color:var(--text-soft);">📋 其他待辦</h3>
+      <div id="todoUpcoming"></div>
+    </div>
+  </section>
+
+  <!-- 教案 -->
+  <section id="view-plans" class="view">
+    <div class="card">
+      <h2>📖 教案管理</h2>
+      <p class="muted">依班級查看歷次教案，點名表也可以在這裡快速登記出缺席。</p>
+      <label>選擇班級</label>
+      <select id="planClassFilter" onchange="loadPlansForClass()"></select>
+      <button class="btn amber" onclick="openPlanForm()">＋ 新增教案</button>
+    </div>
+    <div class="card"><div id="planList"></div></div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="view-settings" class="view">
+    <div class="card">
+      <h2>⚙️ 基本資料維護</h2>
+      <div class="section-tabs">
+        <button class="active" data-s="teachers" onclick="settingsTab('teachers',this)">老師</button>
+        <button data-s="classes" onclick="settingsTab('classes',this)">班級</button>
+        <button data-s="students" onclick="settingsTab('students',this)">學生</button>
+      </div>
+      <div id="settingsBody"></div>
+    </div>
+
+    <div class="card">
+      <h2>🖥️ 開機自動跳出來（電腦）</h2>
+      <p class="muted">網頁本身無法控制電腦開機行為，但可以設定瀏覽器「開機自動開啟這個網址」：</p>
+      <ol class="checklist">
+        <li><b>Chrome：</b>設定 → 開機時 → 開啟特定網頁 → 新增這個網址</li>
+        <li><b>Edge：</b>設定 → 啟動時 → 開啟這些頁面 → 新增這個網址</li>
+        <li>若想要「開機就自動跳出」（不用先開瀏覽器）：把瀏覽器捷徑放進「啟動」資料夾（Win+R 輸入 <code>shell:startup</code>），並在捷徑目標後面加上 <code>--app=你的網址</code>，開機會直接跳出獨立視窗。</li>
+      </ol>
+      <h3 style="font-size:.85rem;margin-top:14px;">📱 手機加到主畫面</h3>
+      <p class="muted">Safari／Chrome 開啟此網頁 → 分享 → 加入主畫面，之後點主畫面圖示即可像 App 一樣開啟。</p>
+    </div>
+
+    <div class="card">
+      <h2>🔌 資料庫連線</h2>
+      <label>Supabase URL</label>
+      <input id="setUrl">
+      <label>Supabase anon key</label>
+      <input id="setKey">
+      <button class="btn" onclick="updateConnection()">更新連線</button>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<footer class="bottomnav" id="bottomnav" style="display:none;">
+  <button data-v="calendar" class="active" onclick="showView('calendar')"><span class="ic">📅</span>行事曆</button>
+  <button data-v="leaves" onclick="showView('leaves')"><span class="ic">🙋</span>學生請假</button>
+  <button data-v="subs" onclick="showView('subs')"><span class="ic">👩‍🏫</span>代課</button>
+  <button data-v="todos" onclick="showView('todos')"><span class="ic">✅</span>待辦</button>
+  <button data-v="plans" onclick="showView('plans')"><span class="ic">📖</span>教案</button>
+</footer>
+
+<div id="overlay"><div id="overlayCard"></div></div>
+
+<script>
+/* ============ 連線設定 ============ */
+let sb = null;
+function getConn(){
+  return { url: localStorage.getItem('cal_sb_url')||'', key: localStorage.getItem('cal_sb_key')||'' };
+}
+function initSupabase(){
+  const {url,key} = getConn();
+  if(!url || !key) return false;
+  sb = window.supabase.createClient(url,key);
+  return true;
+}
+async function saveConnection(){
+  const url = document.getElementById('gateUrl').value.trim();
+  const key = document.getElementById('gateKey').value.trim();
+  if(!url || !key){ document.getElementById('gateMsg').textContent='請兩個欄位都填寫'; return; }
+  localStorage.setItem('cal_sb_url',url);
+  localStorage.setItem('cal_sb_key',key);
+  document.getElementById('gateMsg').textContent='連線測試中…';
+  await boot();
+}
+async function updateConnection(){
+  const url = document.getElementById('setUrl').value.trim();
+  const key = document.getElementById('setKey').value.trim();
+  if(url) localStorage.setItem('cal_sb_url',url);
+  if(key) localStorage.setItem('cal_sb_key',key);
+  await boot();
+  alert('已更新連線');
+}
+
+/* ============ 開機 / 啟動 ============ */
+async function boot(){
+  if(!initSupabase()){
+    document.getElementById('setupGate').style.display='block';
+    document.getElementById('app').style.display='none';
+    document.getElementById('bottomnav').style.display='none';
+    return;
+  }
+  const ok = await testConn();
+  document.getElementById('setupGate').style.display = ok ? 'none':'block';
+  document.getElementById('app').style.display = ok ? 'block':'none';
+  document.getElementById('bottomnav').style.display = ok ? 'flex':'none';
+  document.getElementById('connDot').className = 'conndot ' + (ok?'ok':'bad');
+  document.getElementById('connLabel').textContent = ok ? '資料庫已連線' : '連線失敗，請檢查設定';
+  const {url,key} = getConn();
+  document.getElementById('setUrl').value = url;
+  document.getElementById('setKey').value = key;
+  if(ok){
+    await loadCoreData();
+    renderCalendar();
+    showView('calendar');
+  }
+}
+async function testConn(){
+  try{
+    const {error} = await sb.from('teachers').select('id').limit(1);
+    return !error;
+  }catch(e){ return false; }
+}
+
+/* ============ core data ============ */
+let TEACHERS=[], CLASSES=[], STUDENTS=[];
+async function loadCoreData(){
+  const [t,c,s] = await Promise.all([
+    sb.from('teachers').select('*').order('name'),
+    sb.from('classes').select('*').order('name'),
+    sb.from('students').select('*').order('name'),
+  ]);
+  TEACHERS = t.data||[]; CLASSES = c.data||[]; STUDENTS = s.data||[];
+  fillSelect('planClassFilter', CLASSES, true);
+}
+function fillSelect(id, arr, withAll){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = (withAll?'<option value="">— 全部班級 —</option>':'') +
+    arr.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+}
+function teacherName(id){ return (TEACHERS.find(t=>t.id===id)||{}).name || '—'; }
+function className(id){ return (CLASSES.find(c=>c.id===id)||{}).name || '—'; }
+function studentName(id){ return (STUDENTS.find(s=>s.id===id)||{}).name || '—'; }
+
+/* ============ view switching ============ */
+function showView(v){
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('nav.tabs button, footer.bottomnav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.v===v);
+  });
+  if(v==='leaves') loadLeaveList('未補課');
+  if(v==='subs') loadSubList();
+  if(v==='todos') loadTodos();
+  if(v==='plans') loadPlansForClass();
+  if(v==='settings') settingsTab('teachers', document.querySelector('#view-settings .section-tabs button'));
+}
+
+/* ============ calendar ============ */
+let curYear, curMonth, selectedDate=null;
+let monthData = {}; // dateStr -> {plans:[],leaves:[],subs:[],events:[],todos:[]}
+
+function changeMonth(delta){
+  curMonth += delta;
+  if(curMonth<0){curMonth=11;curYear--;}
+  if(curMonth>11){curMonth=0;curYear++;}
+  renderCalendar();
+}
+function pad(n){return String(n).padStart(2,'0');}
+function dstr(y,m,d){return `${y}-${pad(m+1)}-${pad(d)}`;}
+
+async function renderCalendar(){
+  const now = new Date();
+  if(curYear===undefined){ curYear=now.getFullYear(); curMonth=now.getMonth(); }
+  document.getElementById('ymLabel').textContent = `${curYear} 年 ${curMonth+1} 月`;
+  await loadMonthData(curYear,curMonth);
+
+  const first = new Date(curYear,curMonth,1);
+  const startWeekday = first.getDay();
+  const daysInMonth = new Date(curYear,curMonth+1,0).getDate();
+  const prevDays = new Date(curYear,curMonth,0).getDate();
+
+  let cells = [];
+  for(let i=startWeekday-1;i>=0;i--) cells.push({d:prevDays-i, other:true, y:curMonth===0?curYear-1:curYear, m:curMonth===0?11:curMonth-1});
+  for(let d=1; d<=daysInMonth; d++) cells.push({d, other:false, y:curYear, m:curMonth});
+  let next=1;
+  while(cells.length%7!==0){ cells.push({d:next++, other:true, y:curMonth===11?curYear+1:curYear, m:curMonth===11?0:curMonth+1}); }
+
+  const todayStr = dstr(now.getFullYear(),now.getMonth(),now.getDate());
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = cells.map(c=>{
+    const ds = dstr(c.y,c.m,c.d);
+    const info = monthData[ds] || {};
+    const badges = [];
+    if(info.leaves?.length) badges.push(`<span class="badge leave">🙋${info.leaves.length}</span>`);
+    if(info.subs?.length) badges.push(`<span class="badge sub">👩‍🏫${info.subs.length}</span>`);
+    if(info.plans?.length) badges.push(`<span class="badge plan">📖${info.plans.length}</span>`);
+    if(info.events?.length) badges.push(`<span class="badge event">🔶${info.events.length}</span>`);
+    if(info.todos?.length) badges.push(`<span class="badge todo">✅${info.todos.length}</span>`);
+    const cls = ['day', c.other?'other':'', ds===todayStr?'today':'', ds===selectedDate?'selected':''].join(' ');
+    return `<div class="${cls}" onclick="openDay('${ds}')"><div class="num">${c.d}</div><div class="badges">${badges.join('')}</div></div>`;
+  }).join('');
+}
+
+async function loadMonthData(y,m){
+  const from = dstr(y,m,1);
+  const to = dstr(y,m,new Date(y,m+1,0).getDate());
+  monthData = {};
+  const ensure = ds => monthData[ds] || (monthData[ds]={plans:[],leaves:[],subs:[],events:[],todos:[]});
+
+  const [plans, leaves, subs, events, todos] = await Promise.all([
+    sb.from('lesson_plans').select('*').gte('session_date',from).lte('session_date',to),
+    sb.from('student_leaves').select('*').gte('leave_date',from).lte('leave_date',to),
+    sb.from('teacher_leaves').select('*').gte('leave_date',from).lte('leave_date',to),
+    sb.from('calendar_events').select('*').gte('event_date',from).lte('event_date',to),
+    sb.from('todos').select('*').gte('due_date',from).lte('due_date',to).eq('is_done',false),
+  ]);
+  (plans.data||[]).forEach(x=>ensure(x.session_date).plans.push(x));
+  (leaves.data||[]).forEach(x=>ensure(x.leave_date).leaves.push(x));
+  (subs.data||[]).forEach(x=>ensure(x.leave_date).subs.push(x));
+  (events.data||[]).forEach(x=>ensure(x.event_date).events.push(x));
+  (todos.data||[]).forEach(x=>ensure(x.due_date).todos.push(x));
+}
+
+async function openDay(ds){
+  selectedDate = ds;
+  renderCalendar();
+  const info = monthData[ds] || {plans:[],leaves:[],subs:[],events:[],todos:[]};
+  document.getElementById('dayDetail').style.display='block';
+  document.getElementById('ddTitle').textContent = `${ds} 詳情`;
+  let html = '';
+
+  if(info.leaves.length){
+    html += `<h3 style="font-size:.85rem;color:var(--stamp-red);">🙋 學生請假</h3>`;
+    for(const lv of info.leaves){
+      const plan = (monthData[ds].plans||[]).find(p=>p.class_id===lv.class_id);
+      html += `<div class="item-row" onclick="openLeaveDetail('${lv.id}')">
+        <b>${studentName(lv.student_id)}</b>（${className(lv.class_id)}）
+        <span class="pill ${lv.makeup_status==='已完成'?'done':lv.makeup_status==='已安排'?'arranged':'pending'}">${lv.makeup_status}</span>
+        <div class="meta">原因：${lv.reason||'—'}</div>
+        ${plan ? `<div class="lp-callout"><b>當天進度：</b>${plan.topic||''}${plan.homework?'　作業：'+plan.homework:''}</div>` : `<div class="meta">⚠️ 尚未建立當天教案，請至「教案」新增以便查詢補課進度</div>`}
+      </div>`;
+    }
+  }
+  if(info.subs.length){
+    html += `<h3 style="font-size:.85rem;color:var(--sub-green);">👩‍🏫 老師代課</h3>`;
+    for(const s of info.subs){
+      html += `<div class="item-row"><b>${teacherName(s.teacher_id)} 請假</b> → 代課：${s.substitute_teacher_id?teacherName(s.substitute_teacher_id):(s.substitute_name_text||'未指定')}
+        <div class="meta">班級：${className(s.class_id)}　時數：${s.hours||'—'} 小時 ${s.note?('　備註：'+s.note):''}</div></div>`;
+    }
+  }
+  if(info.plans.length){
+    html += `<h3 style="font-size:.85rem;color:var(--grid-blue);">📖 教案</h3>`;
+    for(const p of info.plans){
+      html += `<div class="item-row"><b>${className(p.class_id)}</b> — ${p.topic||''}<div class="meta">${p.content||''}</div></div>`;
+    }
+  }
+  if(info.events.length){
+    html += `<h3 style="font-size:.85rem;color:var(--amber);">🔶 其他行程</h3>`;
+    for(const e of info.events){
+      html += `<div class="item-row"><b>${e.title}</b> ${e.start_time?('　'+e.start_time.slice(0,5)):''}<div class="meta">${e.note||''}</div></div>`;
+    }
+  }
+  if(info.todos.length){
+    html += `<h3 style="font-size:.85rem;color:#9b8bb4;">✅ 待辦</h3>`;
+    for(const t of info.todos){
+      html += `<div class="item-row">${t.title}</div>`;
+    }
+  }
+  if(!html) html = '<p class="muted">這天目前沒有任何登記。</p>';
+  document.getElementById('ddBody').innerHTML = html;
+
+  const {data} = await sb.from('daily_logs').select('*').eq('log_date',ds).maybeSingle();
+  document.getElementById('ddLog').value = data?.content || '';
+  document.getElementById('ddLog').dataset.date = ds;
+}
+
+async function saveDailyLog(){
+  const ds = document.getElementById('ddLog').dataset.date;
+  const content = document.getElementById('ddLog').value;
+  await sb.from('daily_logs').upsert({log_date:ds, content}, {onConflict:'log_date'});
+  alert('日誌已儲存');
+}
+
+/* ============ overlay helper ============ */
+function openOverlay(html){
+  document.getElementById('overlayCard').innerHTML = `<button class="close-x" onclick="closeOverlay()">✕</button>${html}`;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeOverlay(){ document.getElementById('overlay').classList.remove('show'); }
+
+/* ============ 學生請假 ============ */
+function openLeaveForm(){
+  const d = selectedDate || dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  openOverlay(`
+    <h2>🙋 新增學生請假</h2>
+    <label>班級</label>
+    <select id="lvClass" onchange="fillStudentsForClass()">${CLASSES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+    <label>學生</label>
+    <select id="lvStudent"></select>
+    <label>請假日期</label>
+    <input type="date" id="lvDate" value="${d}">
+    <label>原因</label>
+    <input id="lvReason" placeholder="生病 / 家庭因素 / 未告知…">
+    <div id="lvPlanPreview"></div>
+    <button class="btn amber" onclick="submitLeave()">送出登記</button>
+  `);
+  fillStudentsForClass();
+  document.getElementById('lvDate').addEventListener('change', previewPlanForLeave);
+  document.getElementById('lvClass').addEventListener('change', previewPlanForLeave);
+  previewPlanForLeave();
+}
+function fillStudentsForClass(){
+  const cid = document.getElementById('lvClass').value;
+  const list = STUDENTS.filter(s=>s.class_id===cid);
+  document.getElementById('lvStudent').innerHTML = list.map(s=>`<option value="${s.id}">${s.name}</option>`).join('') || '<option value="">（此班級尚無學生資料）</option>';
+}
+async function previewPlanForLeave(){
+  const cid = document.getElementById('lvClass').value;
+  const ds = document.getElementById('lvDate').value;
+  const {data} = await sb.from('lesson_plans').select('*').eq('class_id',cid).eq('session_date',ds).maybeSingle();
+  document.getElementById('lvPlanPreview').innerHTML = data
+    ? `<div class="lp-callout"><b>當天教案：</b>${data.topic||''}<br>${data.content||''}${data.homework?('<br>作業：'+data.homework):''}</div>`
+    : `<div class="lp-callout">⚠️ 這天這個班級還沒有教案紀錄，之後可以到「教案」補上，補課時才知道進度。</div>`;
+}
+async function submitLeave(){
+  const payload = {
+    class_id: document.getElementById('lvClass').value,
+    student_id: document.getElementById('lvStudent').value,
+    leave_date: document.getElementById('lvDate').value,
+    reason: document.getElementById('lvReason').value,
+    makeup_status: '未補課',
+  };
+  if(!payload.student_id){ alert('請選擇學生'); return; }
+  const {error} = await sb.from('student_leaves').insert(payload);
+  if(error){ alert('儲存失敗：'+error.message); return; }
+  closeOverlay();
+  await renderCalendar();
+  if(document.getElementById('view-leaves').classList.contains('active')) loadLeaveList('未補課');
+}
+
+let leaveFilter = '未補課';
+function filterLeaves(f, btn){
+  leaveFilter = f;
+  document.querySelectorAll('#view-leaves .section-tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadLeaveList(f);
+}
+async function loadLeaveList(f){
+  let q = sb.from('student_leaves').select('*').order('leave_date',{ascending:false});
+  if(f!=='all') q = q.eq('makeup_status', f);
+  const {data} = await q;
+  const rows = data||[];
+  document.getElementById('leaveList').innerHTML = rows.length ? rows.map(lv=>`
+    <div class="item-row" onclick="openLeaveDetail('${lv.id}')">
+      <b>${studentName(lv.student_id)}</b>（${className(lv.class_id)}）　${lv.leave_date}
+      <span class="pill ${lv.makeup_status==='已完成'?'done':lv.makeup_status==='已安排'?'arranged':'pending'}">${lv.makeup_status}</span>
+      <div class="meta">原因：${lv.reason||'—'}</div>
+    </div>`).join('') : '<p class="muted">沒有符合條件的紀錄。</p>';
+}
+async function openLeaveDetail(id){
+  const {data:lv} = await sb.from('student_leaves').select('*').eq('id',id).single();
+  const {data:plan} = await sb.from('lesson_plans').select('*').eq('class_id',lv.class_id).eq('session_date',lv.leave_date).maybeSingle();
+  openOverlay(`
+    <h2>🙋 ${studentName(lv.student_id)} 的請假紀錄</h2>
+    <p class="muted">${className(lv.class_id)}　請假日：${lv.leave_date}　原因：${lv.reason||'—'}</p>
+    ${plan ? `<div class="lp-callout"><b>當天進度：</b>${plan.topic||''}<br>${plan.content||''}${plan.homework?('<br>作業：'+plan.homework):''}${plan.materials?('<br>教材：'+plan.materials):''}</div>`
+           : `<div class="lp-callout">⚠️ 尚未建立當天教案內容。</div>`}
+    <label>補課狀態</label>
+    <select id="lvStatus">
+      <option ${lv.makeup_status==='未補課'?'selected':''}>未補課</option>
+      <option ${lv.makeup_status==='已安排'?'selected':''}>已安排</option>
+      <option ${lv.makeup_status==='已完成'?'selected':''}>已完成</option>
+    </select>
+    <label>補課日期</label>
+    <input type="date" id="lvMakeupDate" value="${lv.makeup_date||''}">
+    <label>補課備註</label>
+    <textarea id="lvMakeupNote">${lv.makeup_note||''}</textarea>
+    <button class="btn amber" onclick="saveLeaveDetail('${lv.id}')">儲存</button>
+  `);
+}
+async function saveLeaveDetail(id){
+  const payload = {
+    makeup_status: document.getElementById('lvStatus').value,
+    makeup_date: document.getElementById('lvMakeupDate').value || null,
+    makeup_note: document.getElementById('lvMakeupNote').value,
+  };
+  await sb.from('student_leaves').update(payload).eq('id',id);
+  closeOverlay();
+  loadLeaveList(leaveFilter);
+  renderCalendar();
+}
+
+/* ============ 老師代課 ============ */
+function openSubForm(){
+  const d = selectedDate || dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  openOverlay(`
+    <h2>👩‍🏫 新增老師請假／代課登記</h2>
+    <label>請假老師</label>
+    <select id="subTeacher">${TEACHERS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>
+    <label>班級</label>
+    <select id="subClass">${CLASSES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+    <label>日期</label>
+    <input type="date" id="subDate" value="${d}">
+    <div class="row2">
+      <div><label>代課老師（系統內）</label><select id="subSubTeacher"><option value="">— 無 / 系統外 —</option>${TEACHERS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
+      <div><label>或直接輸入代課者姓名</label><input id="subSubText" placeholder="例如：外聘老師王小明"></div>
+    </div>
+    <label>代課時數</label>
+    <input type="number" step="0.5" id="subHours" placeholder="例如 2">
+    <label>備註</label>
+    <textarea id="subNote"></textarea>
+    <button class="btn green" onclick="submitSub()">送出登記</button>
+  `);
+}
+async function submitSub(){
+  const payload = {
+    teacher_id: document.getElementById('subTeacher').value,
+    class_id: document.getElementById('subClass').value,
+    leave_date: document.getElementById('subDate').value,
+    substitute_teacher_id: document.getElementById('subSubTeacher').value || null,
+    substitute_name_text: document.getElementById('subSubText').value || null,
+    hours: parseFloat(document.getElementById('subHours').value) || null,
+    note: document.getElementById('subNote').value,
+  };
+  const {error} = await sb.from('teacher_leaves').insert(payload);
+  if(error){ alert('儲存失敗：'+error.message); return; }
+  closeOverlay();
+  await renderCalendar();
+  if(document.getElementById('view-subs').classList.contains('active')) loadSubList();
+}
+async function loadSubList(){
+  const {data} = await sb.from('teacher_leaves').select('*').order('leave_date',{ascending:false}).limit(100);
+  const rows = data||[];
+  document.getElementById('subList').innerHTML = rows.length ? rows.map(s=>`
+    <div class="item-row">
+      <span class="stamp sub">代課</span> <b>${teacherName(s.teacher_id)}</b> 請假　${s.leave_date}
+      <div class="meta">班級：${className(s.class_id)}　代課：${s.substitute_teacher_id?teacherName(s.substitute_teacher_id):(s.substitute_name_text||'未指定')}　時數：${s.hours||'—'}</div>
+      ${s.note?`<div class="meta">備註：${s.note}</div>`:''}
+    </div>`).join('') : '<p class="muted">尚無代課紀錄。</p>';
+}
+
+/* ============ 教案 ============ */
+function openPlanForm(){
+  const d = selectedDate || dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  openOverlay(`
+    <h2>📖 新增／更新教案</h2>
+    <p class="muted">同一班級＋同一日期會覆蓋原本內容。</p>
+    <label>班級</label>
+    <select id="planClass">${CLASSES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+    <label>上課日期</label>
+    <input type="date" id="planDate" value="${d}">
+    <label>本次主題／進度</label>
+    <input id="planTopic" placeholder="例如：Unit 5 現在完成式">
+    <label>教案內容</label>
+    <textarea id="planContent"></textarea>
+    <label>回家作業</label>
+    <input id="planHomework">
+    <label>使用教材／頁數</label>
+    <input id="planMaterials">
+    <button class="btn amber" onclick="submitPlan()">儲存教案</button>
+  `);
+}
+async function submitPlan(){
+  const payload = {
+    class_id: document.getElementById('planClass').value,
+    session_date: document.getElementById('planDate').value,
+    topic: document.getElementById('planTopic').value,
+    content: document.getElementById('planContent').value,
+    homework: document.getElementById('planHomework').value,
+    materials: document.getElementById('planMaterials').value,
+  };
+  const {error} = await sb.from('lesson_plans').upsert(payload, {onConflict:'class_id,session_date'});
+  if(error){ alert('儲存失敗：'+error.message); return; }
+  closeOverlay();
+  await renderCalendar();
+  if(document.getElementById('view-plans').classList.contains('active')) loadPlansForClass();
+}
+async function loadPlansForClass(){
+  const cid = document.getElementById('planClassFilter').value;
+  let q = sb.from('lesson_plans').select('*').order('session_date',{ascending:false}).limit(60);
+  if(cid) q = q.eq('class_id',cid);
+  const {data} = await q;
+  const rows = data||[];
+  document.getElementById('planList').innerHTML = rows.length ? rows.map(p=>`
+    <div class="item-row"><b>${p.session_date}　${className(p.class_id)}</b><div class="meta">${p.topic||''}</div>${p.content?`<div class="meta">${p.content}</div>`:''}${p.homework?`<div class="meta">作業：${p.homework}</div>`:''}</div>
+  `).join('') : '<p class="muted">尚無教案紀錄。</p>';
+}
+
+/* ============ 其他行程 ============ */
+function openEventForm(){
+  const d = selectedDate || dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  openOverlay(`
+    <h2>🔶 新增行程</h2>
+    <label>標題</label>
+    <input id="evTitle" placeholder="例如：期中評量 / 家長座談會">
+    <label>日期</label>
+    <input type="date" id="evDate" value="${d}">
+    <div class="row2">
+      <div><label>開始時間</label><input type="time" id="evStart"></div>
+      <div><label>結束時間</label><input type="time" id="evEnd"></div>
+    </div>
+    <label>類型</label>
+    <select id="evType"><option value="general">一般</option><option value="exam">考試</option><option value="meeting">會議</option><option value="holiday">假日／停課</option></select>
+    <label>備註</label>
+    <textarea id="evNote"></textarea>
+    <button class="btn amber" onclick="submitEvent()">儲存行程</button>
+  `);
+}
+async function submitEvent(){
+  const payload = {
+    title: document.getElementById('evTitle').value,
+    event_date: document.getElementById('evDate').value,
+    start_time: document.getElementById('evStart').value || null,
+    end_time: document.getElementById('evEnd').value || null,
+    type: document.getElementById('evType').value,
+    note: document.getElementById('evNote').value,
+  };
+  if(!payload.title){ alert('請輸入標題'); return; }
+  const {error} = await sb.from('calendar_events').insert(payload);
+  if(error){ alert('儲存失敗：'+error.message); return; }
+  closeOverlay();
+  renderCalendar();
+}
+
+/* ============ 待辦提醒 ============ */
+function openTodoForm(){
+  openOverlay(`
+    <h2>✅ 新增待辦</h2>
+    <label>內容</label>
+    <input id="todoTitle" placeholder="例如：準備下週教案">
+    <label>分類</label>
+    <select id="todoCat"><option>教案準備</option><option>點名核對</option><option>行政庶務</option><option>其他</option></select>
+    <label><input type="checkbox" id="todoRecur" style="width:auto;" onchange="toggleRecur()"> 每週固定重複</label>
+    <div id="recurBox" style="display:none;">
+      <label>重複星期</label>
+      <select id="todoWeekday"><option value="0">日</option><option value="1">一</option><option value="2">二</option><option value="3">三</option><option value="4">四</option><option value="5" selected>五</option><option value="6">六</option></select>
+    </div>
+    <div id="dateBox">
+      <label>到期日期</label>
+      <input type="date" id="todoDate" value="${dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate())}">
+    </div>
+    <button class="btn amber" onclick="submitTodo()">新增</button>
+  `);
+}
+function toggleRecur(){
+  const on = document.getElementById('todoRecur').checked;
+  document.getElementById('recurBox').style.display = on?'block':'none';
+  document.getElementById('dateBox').style.display = on?'none':'block';
+}
+async function submitTodo(){
+  const isRecurring = document.getElementById('todoRecur').checked;
+  const payload = {
+    title: document.getElementById('todoTitle').value,
+    category: document.getElementById('todoCat').value,
+    is_recurring: isRecurring,
+    recurrence_rule: isRecurring ? ('weekly:'+document.getElementById('todoWeekday').value) : null,
+    due_date: isRecurring ? nextWeekday(parseInt(document.getElementById('todoWeekday').value)) : (document.getElementById('todoDate').value || null),
+  };
+  if(!payload.title){ alert('請輸入內容'); return; }
+  const {error} = await sb.from('todos').insert(payload);
+  if(error){ alert('儲存失敗：'+error.message); return; }
+  closeOverlay();
+  loadTodos();
+  renderCalendar();
+}
+function nextWeekday(wd){
+  const now = new Date();
+  const diff = (wd - now.getDay() + 7) % 7 || 7;
+  const nd = new Date(now); nd.setDate(now.getDate()+diff);
+  return dstr(nd.getFullYear(),nd.getMonth(),nd.getDate());
+}
+async function loadTodos(){
+  const todayStr = dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  const {data} = await sb.from('todos').select('*').eq('is_done',false).order('due_date');
+  const rows = data||[];
+  const overdue = rows.filter(t=>!t.is_recurring && t.due_date && t.due_date<=todayStr);
+  const recurring = rows.filter(t=>t.is_recurring);
+  const upcoming = rows.filter(t=>!t.is_recurring && (!t.due_date || t.due_date>todayStr));
+  const render = (arr) => arr.length ? arr.map(t=>`
+    <div class="todo-item">
+      <input type="checkbox" onchange="completeTodo('${t.id}', this)">
+      <div class="t"><b>${t.title}</b> <span class="muted">${t.category||''}${t.due_date?(' · '+t.due_date):''}${t.is_recurring?(' · 每週'+['日','一','二','三','四','五','六'][t.recurrence_rule.split(':')[1]]):''}</span></div>
+    </div>`).join('') : '<p class="muted">目前沒有項目。</p>';
+  document.getElementById('todoOverdue').innerHTML = render(overdue);
+  document.getElementById('todoRecurring').innerHTML = render(recurring);
+  document.getElementById('todoUpcoming').innerHTML = render(upcoming);
+}
+async function completeTodo(id, cb){
+  const isRecurring = cb.closest('.card').querySelector('h3').textContent.includes('固定');
+  if(isRecurring){
+    const {data:t} = await sb.from('todos').select('*').eq('id',id).single();
+    const wd = parseInt(t.recurrence_rule.split(':')[1]);
+    await sb.from('todos').update({due_date: nextWeekday(wd)}).eq('id',id);
+    alert('已完成，下週會再次提醒');
+  } else {
+    await sb.from('todos').update({is_done:true}).eq('id',id);
+  }
+  loadTodos();
+  renderCalendar();
+}
+
+/* ============ 設定 / 基本資料 ============ */
+function settingsTab(tab, btn){
+  document.querySelectorAll('#view-settings .section-tabs button').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderSettingsBody(tab);
+}
+function renderSettingsBody(tab){
+  const body = document.getElementById('settingsBody');
+  if(tab==='teachers'){
+    body.innerHTML = `
+      <div class="row2"><input id="newTeacherName" placeholder="老師姓名"><input id="newTeacherPhone" placeholder="電話（選填）"></div>
+      <button class="btn" onclick="addTeacher()">新增老師</button>
+      <table class="simple"><tr><th>姓名</th><th>電話</th></tr>${TEACHERS.map(t=>`<tr><td>${t.name}</td><td>${t.phone||'—'}</td></tr>`).join('')}</table>`;
+  } else if(tab==='classes'){
+    body.innerHTML = `
+      <div class="row2"><input id="newClassName" placeholder="班級名稱"><select id="newClassTeacher"><option value="">（授課老師）</option>${TEACHERS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
+      <button class="btn" onclick="addClass()">新增班級</button>
+      <table class="simple"><tr><th>班級</th><th>老師</th></tr>${CLASSES.map(c=>`<tr><td>${c.name}</td><td>${teacherName(c.teacher_id)}</td></tr>`).join('')}</table>`;
+  } else if(tab==='students'){
+    body.innerHTML = `
+      <div class="row2"><input id="newStudentName" placeholder="學生姓名"><select id="newStudentClass">${CLASSES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+      <button class="btn" onclick="addStudent()">新增學生</button>
+      <table class="simple"><tr><th>姓名</th><th>班級</th></tr>${STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${className(s.class_id)}</td></tr>`).join('')}</table>`;
+  }
+}
+async function addTeacher(){
+  const name = document.getElementById('newTeacherName').value.trim();
+  if(!name) return;
+  await sb.from('teachers').insert({name, phone: document.getElementById('newTeacherPhone').value});
+  await loadCoreData(); renderSettingsBody('teachers');
+}
+async function addClass(){
+  const name = document.getElementById('newClassName').value.trim();
+  if(!name) return;
+  await sb.from('classes').insert({name, teacher_id: document.getElementById('newClassTeacher').value || null});
+  await loadCoreData(); renderSettingsBody('classes');
+}
+async function addStudent(){
+  const name = document.getElementById('newStudentName').value.trim();
+  if(!name) return;
+  await sb.from('students').insert({name, class_id: document.getElementById('newStudentClass').value});
+  await loadCoreData(); renderSettingsBody('students');
+}
+
+/* ============ init ============ */
+boot();
+</script>
+</body>
+</html>
