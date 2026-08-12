@@ -10,9 +10,9 @@
   :root{
     --ink:#8C4356;
     --taupe:#9F8F82;
-    --paper:#FBF7E9;
-    --paper-line:#F4E4B2;
-    --amber:#F1CC74;
+    --paper:#FBF6E8;
+    --paper-line:#E8D9A8;
+    --amber:#D9BB6B;
     --grid-blue:#6E8FB0;
     --stamp-red:#C1443C;
     --sub-green:#4C8067;
@@ -104,7 +104,7 @@
   .badge.sub{background:var(--sub-green);}
   .badge.plan{background:var(--grid-blue);}
   .badge.event{background:var(--amber);color:#2B2100;}
-  .badge.todo{background:#9b8bb4;}
+  .badge.todo{background:#E0A947;}
 
   .stamp{
     display:inline-block;
@@ -230,7 +230,7 @@
     <button data-v="leaves" onclick="showView('leaves')"><img class="tabicon" src="icon-leave.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">🙋</span> 學生請假</button>
     <button data-v="subs" onclick="showView('subs')"><img class="tabicon" src="icon-sub.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">👩‍🏫</span> 老師代課</button>
     <button data-v="todos" onclick="showView('todos')"><img class="tabicon" src="icon-todo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">✅</span> 待辦提醒</button>
-    <button data-v="plans" onclick="showView('plans')"><img class="tabicon" src="icon-plan.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">📖</span> 教案</button>
+    <button data-v="plans" onclick="showView('plans')"><img class="tabicon" src="icon-plan.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">📖</span> 資料區</button>
   </nav>
 </header>
 
@@ -246,7 +246,7 @@
       </div>
       <div class="weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
       <div class="grid" id="calGrid"></div>
-      <p class="muted" style="margin-top:10px;">🙋紅=學生請假　👩‍🏫綠=老師代課　📖藍=教案　🔶黃=其他行程　🟣紫=待辦</p>
+      <p class="muted" style="margin-top:10px;">🙋紅=學生請假　👩‍🏫綠=老師代課　📖藍=資料　🔶黃=其他行程　🟡黃=待辦</p>
     </div>
 
     <div class="card">
@@ -340,7 +340,7 @@
     </div>
 
     <div class="card">
-      <h2>📖 教案管理</h2>
+      <h2>📖 資料區</h2>
       <p class="muted">依班級查看歷次教案，點名表也可以在這裡快速登記出缺席。</p>
       <label>選擇班級</label>
       <select id="planClassFilter" onchange="loadPlansForClass()"></select>
@@ -399,7 +399,7 @@
   <button data-v="leaves" onclick="showView('leaves')"><img class="tabicon" src="icon-leave.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">🙋</span>學生請假</button>
   <button data-v="subs" onclick="showView('subs')"><img class="tabicon" src="icon-sub.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">👩‍🏫</span>代課</button>
   <button data-v="todos" onclick="showView('todos')"><img class="tabicon" src="icon-todo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">✅</span>待辦</button>
-  <button data-v="plans" onclick="showView('plans')"><img class="tabicon" src="icon-plan.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">📖</span>教案</button>
+  <button data-v="plans" onclick="showView('plans')"><img class="tabicon" src="icon-plan.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">📖</span>資料區</button>
 </footer>
 
 <div id="overlay"><div id="overlayCard"></div></div>
@@ -602,7 +602,7 @@ async function openDay(ds){
     }
   }
   if(info.plans.length){
-    html += `<h3 style="font-size:.85rem;color:var(--grid-blue);">📖 教案</h3>`;
+    html += `<h3 style="font-size:.85rem;color:var(--grid-blue);">📖 資料</h3>`;
     for(const p of info.plans){
       html += `<div class="item-row"><b>${className(p.class_id)}</b> — ${p.topic||''}<div class="meta">${p.content||''}</div></div>`;
     }
@@ -614,7 +614,7 @@ async function openDay(ds){
     }
   }
   if(info.todos.length){
-    html += `<h3 style="font-size:.85rem;color:#9b8bb4;">✅ 待辦</h3>`;
+    html += `<h3 style="font-size:.85rem;color:#E0A947;">✅ 待辦</h3>`;
     for(const t of info.todos){
       html += `<div class="item-row">${t.title}</div>`;
     }
