@@ -170,6 +170,8 @@
   }
   footer.bottomnav button .ic{font-size:1.15rem;}
   footer.bottomnav button.active{color:var(--amber);}
+  .tabicon{height:1.15em;vertical-align:-0.22em;border-radius:4px;margin-right:2px;}
+  footer.bottomnav .tabicon{height:1.3em;vertical-align:middle;margin-right:0;display:block;margin:0 auto;}
 
   #setupGate{
     max-width:480px;margin:40px auto;padding:0 16px;
@@ -224,11 +226,11 @@
     <button class="btn ghost" style="margin:0;color:#fff;border-color:rgba(255,255,255,.3);" onclick="showView('settings')">⚙️ 設定</button>
   </div>
   <nav class="tabs">
-    <button data-v="calendar" class="active" onclick="showView('calendar')">📅 行事曆</button>
-    <button data-v="leaves" onclick="showView('leaves')">🙋 學生請假</button>
-    <button data-v="subs" onclick="showView('subs')">👩‍🏫 老師代課</button>
-    <button data-v="todos" onclick="showView('todos')">✅ 待辦提醒</button>
-    <button data-v="plans" onclick="showView('plans')">📖 教案</button>
+    <button data-v="calendar" class="active" onclick="showView('calendar')"><img class="tabicon" src="icon-calendar.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">📅</span> 行事曆</button>
+    <button data-v="leaves" onclick="showView('leaves')"><img class="tabicon" src="icon-leave.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">🙋</span> 學生請假</button>
+    <button data-v="subs" onclick="showView('subs')"><img class="tabicon" src="icon-sub.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">👩‍🏫</span> 老師代課</button>
+    <button data-v="todos" onclick="showView('todos')"><img class="tabicon" src="icon-todo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">✅</span> 待辦提醒</button>
+    <button data-v="plans" onclick="showView('plans')"><img class="tabicon" src="icon-plan.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">📖</span> 教案</button>
   </nav>
 </header>
 
@@ -245,6 +247,15 @@
       <div class="weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
       <div class="grid" id="calGrid"></div>
       <p class="muted" style="margin-top:10px;">🙋紅=學生請假　👩‍🏫綠=老師代課　📖藍=教案　🔶黃=其他行程　🟣紫=待辦</p>
+    </div>
+
+    <div class="card">
+      <h2>📤 上傳學校行事曆（AI 自動整理）</h2>
+      <p class="muted">拍照或上傳學校/校方發的行事曆（圖片或 PDF），AI 會自動抓出每個日期的活動、考試、假期，整理好讓你確認後一次匯入行事曆，不用一筆一筆手動打。</p>
+      <input type="file" id="calFile" accept="image/*,.pdf">
+      <button class="btn amber" onclick="runAiExtractCalendar()">✨ AI 辨識並整理</button>
+      <p class="muted" id="calUpStatus"></p>
+      <div id="calUpPreview"></div>
     </div>
 
     <div class="card" id="dayDetail" style="display:none;">
@@ -314,6 +325,20 @@
 
   <!-- 教案 -->
   <section id="view-plans" class="view">
+    <div class="card" id="uploadCard">
+      <h2>📤 上傳點名表／教案（AI 自動整理）</h2>
+      <p class="muted">拍照或截圖上傳點名表、教案，AI 會自動判讀本次上課內容跟出缺席名單，你確認無誤後一鍵存檔——缺席的學生也會自動列進「學生請假」方便追補課進度。</p>
+      <div class="row2">
+        <div><label>班級</label><select id="upClass"></select></div>
+        <div><label>上課日期</label><input type="date" id="upDate"></div>
+      </div>
+      <label>選擇圖片（點名表或教案照片，可分開上傳，AI 都能讀）</label>
+      <input type="file" id="upFile" accept="image/*">
+      <button class="btn amber" onclick="runAiExtract()">✨ AI 辨識並整理</button>
+      <p class="muted" id="upStatus"></p>
+      <div id="upPreview"></div>
+    </div>
+
     <div class="card">
       <h2>📖 教案管理</h2>
       <p class="muted">依班級查看歷次教案，點名表也可以在這裡快速登記出缺席。</p>
@@ -349,6 +374,14 @@
     </div>
 
     <div class="card">
+      <h2>✨ AI 辨識金鑰</h2>
+      <p class="muted">「教案」頁的 AI 自動整理功能需要 Anthropic API 金鑰（到 <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> 申請，屬於用量計費，辨識一張圖大約幾分錢台幣）。金鑰只存在這台裝置的瀏覽器裡，不會上傳到 GitHub。</p>
+      <label>Anthropic API Key</label>
+      <input id="setAnthropicKey" placeholder="sk-ant-...">
+      <button class="btn" onclick="updateAnthropicKey()">儲存金鑰</button>
+    </div>
+
+    <div class="card">
       <h2>🔌 資料庫連線</h2>
       <label>Supabase URL</label>
       <input id="setUrl">
@@ -362,11 +395,11 @@
 </div>
 
 <footer class="bottomnav" id="bottomnav" style="display:none;">
-  <button data-v="calendar" class="active" onclick="showView('calendar')"><span class="ic">📅</span>行事曆</button>
-  <button data-v="leaves" onclick="showView('leaves')"><span class="ic">🙋</span>學生請假</button>
-  <button data-v="subs" onclick="showView('subs')"><span class="ic">👩‍🏫</span>代課</button>
-  <button data-v="todos" onclick="showView('todos')"><span class="ic">✅</span>待辦</button>
-  <button data-v="plans" onclick="showView('plans')"><span class="ic">📖</span>教案</button>
+  <button data-v="calendar" class="active" onclick="showView('calendar')"><img class="tabicon" src="icon-calendar.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">📅</span>行事曆</button>
+  <button data-v="leaves" onclick="showView('leaves')"><img class="tabicon" src="icon-leave.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">🙋</span>學生請假</button>
+  <button data-v="subs" onclick="showView('subs')"><img class="tabicon" src="icon-sub.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">👩‍🏫</span>代課</button>
+  <button data-v="todos" onclick="showView('todos')"><img class="tabicon" src="icon-todo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">✅</span>待辦</button>
+  <button data-v="plans" onclick="showView('plans')"><img class="tabicon" src="icon-plan.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ic" style="display:none;">📖</span>教案</button>
 </footer>
 
 <div id="overlay"><div id="overlayCard"></div></div>
@@ -400,6 +433,12 @@ async function updateConnection(){
   await boot();
   alert('已更新連線');
 }
+function updateAnthropicKey(){
+  const key = document.getElementById('setAnthropicKey').value.trim();
+  if(!key){ alert('請貼上金鑰'); return; }
+  localStorage.setItem('cal_anthropic_key', key);
+  alert('已儲存 AI 辨識金鑰');
+}
 
 /* ============ 開機 / 啟動 ============ */
 async function boot(){
@@ -418,6 +457,8 @@ async function boot(){
   const {url,key} = getConn();
   document.getElementById('setUrl').value = url;
   document.getElementById('setKey').value = key;
+  document.getElementById('setAnthropicKey').value = localStorage.getItem('cal_anthropic_key')||'';
+  document.getElementById('upDate').value = dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
   if(ok){
     await loadCoreData();
     renderCalendar();
@@ -441,6 +482,7 @@ async function loadCoreData(){
   ]);
   TEACHERS = t.data||[]; CLASSES = c.data||[]; STUDENTS = s.data||[];
   fillSelect('planClassFilter', CLASSES, true);
+  fillSelect('upClass', CLASSES, false);
 }
 function fillSelect(id, arr, withAll){
   const el = document.getElementById(id);
@@ -795,6 +837,237 @@ async function loadPlansForClass(){
   document.getElementById('planList').innerHTML = rows.length ? rows.map(p=>`
     <div class="item-row"><b>${p.session_date}　${className(p.class_id)}</b><div class="meta">${p.topic||''}</div>${p.content?`<div class="meta">${p.content}</div>`:''}${p.homework?`<div class="meta">作業：${p.homework}</div>`:''}</div>
   `).join('') : '<p class="muted">尚無教案紀錄。</p>';
+}
+
+/* ============ AI 辨識點名表／教案 ============ */
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = ()=>resolve(r.result.split(',')[1]);
+    r.onerror = ()=>reject(new Error('讀取檔案失敗'));
+    r.readAsDataURL(file);
+  });
+}
+async function runAiExtract(){
+  const key = localStorage.getItem('cal_anthropic_key');
+  if(!key){ alert('請先到「⚙️ 設定」貼上 Anthropic API Key'); showView('settings'); return; }
+  const fileInput = document.getElementById('upFile');
+  const file = fileInput.files[0];
+  if(!file){ alert('請先選擇一張圖片'); return; }
+  const classId = document.getElementById('upClass').value;
+  if(!classId){ alert('請先選擇班級'); return; }
+
+  const statusEl = document.getElementById('upStatus');
+  statusEl.textContent = '⏳ AI 辨識中，請稍候（約 10-20 秒）…';
+  document.getElementById('upPreview').innerHTML = '';
+
+  try{
+    const base64 = await fileToBase64(file);
+    const mediaType = file.type || 'image/jpeg';
+    const prompt = `請仔細判讀這張圖片（可能是補習班的點名表或教案），只回傳 JSON，不要任何其他文字、不要 markdown code fence。格式：
+{"topic":"本次上課主題","content":"教案內容摘要","homework":"回家作業","materials":"使用教材","students":[{"name":"學生姓名","status":"present或absent"}]}
+規則：
+- 如果圖片只有點名表沒有教案內容，topic/content/homework/materials 留空字串。
+- 如果圖片只有教案沒有點名資訊，students 給空陣列 []。
+- status 只能是 present（出席／有打勾）或 absent（缺席／請假／劃記請假）。
+- 姓名請照圖片上的原文字抄錄，不要翻譯或簡化。`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type:'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    if(data.error){ throw new Error(data.error.message || 'API 回傳錯誤'); }
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock){ throw new Error('AI 沒有回傳可判讀的內容'); }
+    const cleaned = textBlock.text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(cleaned);
+    statusEl.textContent = '✅ 辨識完成，請確認以下內容再儲存：';
+    renderExtractionPreview(parsed, classId, document.getElementById('upDate').value);
+  }catch(err){
+    statusEl.textContent = '❌ 辨識失敗：'+err.message+'（可以手動到下方「教案管理」新增，或重新拍清楚一點再試）';
+  }
+}
+
+function renderExtractionPreview(parsed, classId, date){
+  const classStudents = STUDENTS.filter(s=>s.class_id===classId);
+  const extracted = parsed.students||[];
+  const matchedIds = new Set();
+  const rows = extracted.map(ex=>{
+    const match = classStudents.find(s=>s.name===ex.name || s.name.includes(ex.name) || ex.name.includes(s.name));
+    if(match) matchedIds.add(match.id);
+    return {name:ex.name, status:ex.status==='absent'?'absent':'present', studentId: match?match.id:''};
+  });
+  // 加入班上有但圖片沒抄到的學生，預設出席，讓老師確認
+  classStudents.forEach(s=>{
+    if(!matchedIds.has(s.id)) rows.push({name:s.name, status:'present', studentId:s.id, notInPhoto:true});
+  });
+
+  const html = `
+    <div class="lp-callout">
+      <label>本次主題／進度</label><input id="exTopic" value="${(parsed.topic||'').replace(/"/g,'&quot;')}">
+      <label>教案內容</label><textarea id="exContent">${parsed.content||''}</textarea>
+      <label>回家作業</label><input id="exHomework" value="${(parsed.homework||'').replace(/"/g,'&quot;')}">
+      <label>使用教材</label><input id="exMaterials" value="${(parsed.materials||'').replace(/"/g,'&quot;')}">
+    </div>
+    <h3 style="font-size:.85rem;margin-top:12px;">出缺席名單（AI 判讀結果，可手動調整）</h3>
+    <div id="exStudentRows">
+      ${rows.map((r,i)=>`
+        <div class="todo-item">
+          <select data-i="${i}" class="exStatusSel" style="width:90px;flex:0 0 90px;">
+            <option value="present" ${r.status==='present'?'selected':''}>✅出席</option>
+            <option value="absent" ${r.status==='absent'?'selected':''}>🙋缺席</option>
+          </select>
+          <div class="t">${r.studentId ? r.name : `${r.name}　<span class="muted">⚠️ 系統內找不到同名學生，請到設定新增，或忽略這筆</span>`}${r.notInPhoto?' <span class="muted">(圖片未抄到，預設出席)</span>':''}</div>
+        </div>`).join('')}
+    </div>
+    <button class="btn amber" onclick='saveExtraction(${JSON.stringify(rows).replace(/'/g,"&#39;")}, "${classId}", "${date}")'>💾 確認並儲存</button>
+  `;
+  document.getElementById('upPreview').innerHTML = html;
+}
+
+async function saveExtraction(rows, classId, date){
+  // 讀取目前下拉選單被使用者調整過的狀態
+  document.querySelectorAll('.exStatusSel').forEach(sel=>{
+    rows[parseInt(sel.dataset.i)].status = sel.value;
+  });
+  const topic = document.getElementById('exTopic').value;
+  const content = document.getElementById('exContent').value;
+  const homework = document.getElementById('exHomework').value;
+  const materials = document.getElementById('exMaterials').value;
+
+  // 1. 教案
+  if(topic || content || homework || materials){
+    await sb.from('lesson_plans').upsert({class_id:classId, session_date:date, topic, content, homework, materials}, {onConflict:'class_id,session_date'});
+  }
+  // 2. 點名 + 3. 缺席自動登記到學生請假
+  for(const r of rows){
+    if(!r.studentId) continue;
+    await sb.from('attendance').upsert({class_id:classId, session_date:date, student_id:r.studentId, status:r.status}, {onConflict:'class_id,session_date,student_id'});
+    if(r.status==='absent'){
+      const {data:existing} = await sb.from('student_leaves').select('id').eq('class_id',classId).eq('student_id',r.studentId).eq('leave_date',date).maybeSingle();
+      if(!existing){
+        await sb.from('student_leaves').insert({class_id:classId, student_id:r.studentId, leave_date:date, reason:'點名表登記缺席', makeup_status:'未補課'});
+      }
+    }
+  }
+  document.getElementById('upStatus').textContent = '✅ 已儲存！缺席學生已自動列入「學生請假」追蹤補課進度。';
+  document.getElementById('upPreview').innerHTML = '';
+  document.getElementById('upFile').value = '';
+  await renderCalendar();
+  loadPlansForClass();
+}
+
+/* ============ AI 辨識學校行事曆 ============ */
+async function runAiExtractCalendar(){
+  const key = localStorage.getItem('cal_anthropic_key');
+  if(!key){ alert('請先到「⚙️ 設定」貼上 Anthropic API Key'); showView('settings'); return; }
+  const file = document.getElementById('calFile').files[0];
+  if(!file){ alert('請先選擇一個檔案'); return; }
+
+  const statusEl = document.getElementById('calUpStatus');
+  statusEl.textContent = '⏳ AI 辨識中，請稍候（行事曆內容較多，可能要 20-40 秒）…';
+  document.getElementById('calUpPreview').innerHTML = '';
+
+  try{
+    const base64 = await fileToBase64(file);
+    const isPdf = (file.type === 'application/pdf') || file.name.toLowerCase().endsWith('.pdf');
+    const today = dstr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+    const prompt = `這是一份學校／補習班的行事曆（可能是圖片或 PDF），今天日期是 ${today}。請幫我把上面每一個有日期的項目都抓出來，只回傳 JSON 陣列，不要任何其他文字、不要 markdown code fence。格式：
+[{"title":"項目名稱","date":"YYYY-MM-DD","type":"exam或holiday或meeting或general"}]
+規則：
+- 日期一律轉換成西元年 YYYY-MM-DD（如果原文是民國年，民國年+1911=西元年；如果只有月日沒有年份，請依today判斷合理的年份）。
+- type：考試/評量→exam，放假/停課→holiday，會議/座談→meeting，其他都用general。
+- 每個日期項目都要各自一筆，不要合併省略。`;
+
+    const contentBlock = isPdf
+      ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data: base64 } }
+      : { type:'image', source:{ type:'base64', media_type: file.type||'image/jpeg', data: base64 } };
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 4000,
+        messages: [{ role:'user', content: [ contentBlock, { type:'text', text: prompt } ] }]
+      })
+    });
+    const data = await resp.json();
+    if(data.error){ throw new Error(data.error.message || 'API 回傳錯誤'); }
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock){ throw new Error('AI 沒有回傳可判讀的內容'); }
+    const cleaned = textBlock.text.replace(/```json|```/g,'').trim();
+    const events = JSON.parse(cleaned);
+    statusEl.textContent = `✅ 辨識完成，共找到 ${events.length} 筆，請確認後匯入：`;
+    renderCalendarExtractionPreview(events);
+  }catch(err){
+    statusEl.textContent = '❌ 辨識失敗：'+err.message+'（可以改用「＋其他行程」手動新增，或換一張更清楚的圖再試）';
+  }
+}
+
+function renderCalendarExtractionPreview(events){
+  const typeLabel = {exam:'考試',holiday:'假期／停課',meeting:'會議',general:'一般'};
+  const html = `
+    <div id="calExRows">
+      ${events.map((e,i)=>`
+        <div class="item-row">
+          <div class="row2" style="margin-top:0;">
+            <input data-i="${i}" class="calExTitle" value="${(e.title||'').replace(/"/g,'&quot;')}">
+            <input data-i="${i}" type="date" class="calExDate" value="${e.date||''}">
+          </div>
+          <div class="kv" style="margin-top:6px;">
+            <select data-i="${i}" class="calExType" style="width:auto;">
+              ${Object.keys(typeLabel).map(t=>`<option value="${t}" ${e.type===t?'selected':''}>${typeLabel[t]}</option>`).join('')}
+            </select>
+            <label style="display:flex;align-items:center;gap:4px;margin:0;"><input type="checkbox" data-i="${i}" class="calExInclude" style="width:auto;" checked> 加入行事曆</label>
+          </div>
+        </div>`).join('')}
+    </div>
+    <button class="btn amber" onclick="saveCalendarExtraction()">💾 確認並匯入</button>
+  `;
+  document.getElementById('calUpPreview').innerHTML = html;
+}
+
+async function saveCalendarExtraction(){
+  const titles = document.querySelectorAll('.calExTitle');
+  const dates = document.querySelectorAll('.calExDate');
+  const types = document.querySelectorAll('.calExType');
+  const includes = document.querySelectorAll('.calExInclude');
+  const rows = [];
+  titles.forEach((t,idx)=>{
+    if(includes[idx].checked && t.value && dates[idx].value){
+      rows.push({ title:t.value, event_date:dates[idx].value, type:types[idx].value });
+    }
+  });
+  if(!rows.length){ alert('沒有勾選任何項目'); return; }
+  const {error} = await sb.from('calendar_events').insert(rows);
+  if(error){ alert('儲存失敗：'+error.message); return; }
+  document.getElementById('calUpStatus').textContent = `✅ 已匯入 ${rows.length} 筆行程！`;
+  document.getElementById('calUpPreview').innerHTML = '';
+  document.getElementById('calFile').value = '';
+  await renderCalendar();
 }
 
 /* ============ 其他行程 ============ */
