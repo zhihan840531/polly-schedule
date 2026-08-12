@@ -159,7 +159,7 @@
 
   footer.bottomnav{
     position:fixed;bottom:0;left:0;right:0;
-    background:var(--ink);display:flex;justify-content:space-around;
+    background:#FFDC35;display:flex;justify-content:space-around;
     padding:6px 2px calc(6px + env(safe-area-inset-bottom));
     box-shadow:0 -2px 10px rgba(0,0,0,.15);z-index:20;
   }
@@ -225,13 +225,6 @@
     </div>
     <button class="btn ghost" style="margin:0;color:#3B2A05;border-color:rgba(59,42,5,.35);" onclick="showView('settings')">⚙️ 設定</button>
   </div>
-  <nav class="tabs">
-    <button data-v="calendar" class="active" onclick="showView('calendar')"><img class="tabicon" src="icon-calendar.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">📅</span> 行事曆</button>
-    <button data-v="leaves" onclick="showView('leaves')"><img class="tabicon" src="icon-leave.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">🙋</span> 學生請假</button>
-    <button data-v="subs" onclick="showView('subs')"><img class="tabicon" src="icon-sub.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">👩‍🏫</span> 老師代課</button>
-    <button data-v="todos" onclick="showView('todos')"><img class="tabicon" src="icon-todo.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">✅</span> 待辦提醒</button>
-    <button data-v="plans" onclick="showView('plans')"><img class="tabicon" src="icon-plan.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">📖</span> 資料區</button>
-  </nav>
 </header>
 
 <main>
