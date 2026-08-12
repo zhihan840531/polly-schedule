@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
-    --ink:#2C5F6F;
+    --ink:#B8860F;
     --taupe:#9F8F82;
     --paper:#FBF6E8;
     --paper-line:#E8D9A8;
@@ -20,7 +20,7 @@
     --text-soft:#8a7c6d;
     --card:#ffffff;
     --radius:14px;
-    --shadow:0 2px 10px rgba(44,95,111,0.14);
+    --shadow:0 2px 10px rgba(184,134,15,0.16);
   }
   *{box-sizing:border-box;}
   body{
@@ -45,8 +45,8 @@
     box-shadow:var(--shadow);
   }
   header.top .row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-  header.top h1{color:#fff;font-size:1.15rem;margin:0;display:flex;align-items:center;gap:8px;}
-  header.top .sub{font-size:.72rem;opacity:.65;margin-top:2px;font-family:inherit;}
+  header.top h1{color:#3B2A05;font-size:1.15rem;margin:0;display:flex;align-items:center;gap:8px;}
+  header.top .sub{font-size:.72rem;opacity:.75;margin-top:2px;font-family:inherit;color:#3B2A05;}
   .conndot{width:9px;height:9px;border-radius:50%;background:#888;display:inline-block;}
   .conndot.ok{background:#7FC29B;}
   .conndot.bad{background:var(--stamp-red);}
@@ -56,13 +56,13 @@
   }
   nav.tabs button{
     flex:0 0 auto;
-    background:rgba(255,255,255,.08);
-    color:#fff;border:none;border-radius:999px;
+    background:rgba(59,42,5,.10);
+    color:#3B2A05;border:none;border-radius:999px;
     padding:7px 14px;font-size:.82rem;cursor:pointer;
     white-space:nowrap;
     font-family:inherit;
   }
-  nav.tabs button.active{background:var(--amber);color:#2B2100;font-weight:600;}
+  nav.tabs button.active{background:#3B2A05;color:#F4DFA0;font-weight:600;}
 
   main{max-width:900px;margin:0 auto;padding:14px 12px 30px;}
   .view{display:none;}
@@ -164,14 +164,14 @@
     box-shadow:0 -2px 10px rgba(0,0,0,.15);z-index:20;
   }
   footer.bottomnav button{
-    background:none;border:none;color:#cfd6e6;font-size:.62rem;
+    background:none;border:none;color:#5C4310;font-size:.62rem;
     display:flex;flex-direction:column;align-items:center;gap:2px;
     padding:4px 6px;font-family:inherit;cursor:pointer;
   }
   footer.bottomnav button .ic{font-size:1.15rem;}
-  footer.bottomnav button.active{color:var(--amber);}
-  .tabicon{height:1.15em;vertical-align:-0.22em;border-radius:4px;margin-right:2px;}
-  footer.bottomnav .tabicon{height:1.3em;vertical-align:middle;margin-right:0;display:block;margin:0 auto;}
+  footer.bottomnav button.active{color:#3B2A05;font-weight:700;}
+  .tabicon{height:20px;width:20px;object-fit:contain;vertical-align:-5px;border-radius:4px;margin-right:3px;}
+  footer.bottomnav .tabicon{height:24px;width:24px;vertical-align:middle;margin-right:0;display:block;margin:0 auto;}
 
   #setupGate{
     max-width:480px;margin:40px auto;padding:0 16px;
@@ -223,7 +223,7 @@
       <h1><img src="rabbit-icon.png" alt="" style="height:1.3em;vertical-align:-0.35em;border-radius:6px;" onerror="this.style.display='none';this.nextSibling.style.display='inline'"><span style="display:none;">🐰</span> 教室行事曆</h1>
       <div class="sub"><span class="conndot" id="connDot"></span> <span id="connLabel">連線中…</span></div>
     </div>
-    <button class="btn ghost" style="margin:0;color:#fff;border-color:rgba(255,255,255,.3);" onclick="showView('settings')">⚙️ 設定</button>
+    <button class="btn ghost" style="margin:0;color:#3B2A05;border-color:rgba(59,42,5,.35);" onclick="showView('settings')">⚙️ 設定</button>
   </div>
   <nav class="tabs">
     <button data-v="calendar" class="active" onclick="showView('calendar')"><img class="tabicon" src="icon-calendar.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none;">📅</span> 行事曆</button>
