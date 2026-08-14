@@ -1491,17 +1491,17 @@ function renderSettingsBody(tab){
     body.innerHTML = `
       <div class="row2"><input id="newTeacherName" placeholder="老師姓名"><input id="newTeacherPhone" placeholder="電話（選填）"></div>
       <button class="btn" onclick="addTeacher()">新增老師</button>
-      <table class="simple"><tr><th>姓名</th><th>電話</th></tr>${TEACHERS.map(t=>`<tr><td>${t.name}</td><td>${t.phone||'—'}</td></tr>`).join('')}</table>`;
+      <table class="simple"><tr><th>姓名</th><th>電話</th><th></th></tr>${TEACHERS.map(t=>`<tr><td>${t.name}</td><td>${t.phone||'—'}</td><td><button class="btn ghost" style="margin:0;padding:4px 10px;font-size:.75rem;" onclick="deleteTeacher('${t.id}','${t.name.replace(/'/g,"\\'")}')">刪除</button></td></tr>`).join('')}</table>`;
   } else if(tab==='classes'){
     body.innerHTML = `
       <div class="row2"><input id="newClassName" placeholder="班級名稱"><select id="newClassTeacher"><option value="">（授課老師）</option>${TEACHERS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
       <button class="btn" onclick="addClass()">新增班級</button>
-      <table class="simple"><tr><th>班級</th><th>老師</th></tr>${CLASSES.map(c=>`<tr><td>${c.name}</td><td>${teacherName(c.teacher_id)}</td></tr>`).join('')}</table>`;
+      <table class="simple"><tr><th>班級</th><th>老師</th><th></th></tr>${CLASSES.map(c=>`<tr><td>${c.name}</td><td>${teacherName(c.teacher_id)}</td><td><button class="btn ghost" style="margin:0;padding:4px 10px;font-size:.75rem;" onclick="deleteClass('${c.id}','${c.name.replace(/'/g,"\\'")}')">刪除</button></td></tr>`).join('')}</table>`;
   } else if(tab==='students'){
     body.innerHTML = `
       <div class="row2"><input id="newStudentName" placeholder="學生姓名"><select id="newStudentClass">${CLASSES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
       <button class="btn" onclick="addStudent()">新增學生</button>
-      <table class="simple"><tr><th>姓名</th><th>班級</th></tr>${STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${className(s.class_id)}</td></tr>`).join('')}</table>`;
+      <table class="simple"><tr><th>姓名</th><th>班級</th><th></th></tr>${STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${className(s.class_id)}</td><td><button class="btn ghost" style="margin:0;padding:4px 10px;font-size:.75rem;" onclick="deleteStudent('${s.id}','${s.name.replace(/'/g,"\\'")}')">刪除</button></td></tr>`).join('')}</table>`;
   }
 }
 async function addTeacher(){
@@ -1520,6 +1520,22 @@ async function addStudent(){
   const name = document.getElementById('newStudentName').value.trim();
   if(!name) return;
   await sb.from('students').insert({name, class_id: document.getElementById('newStudentClass').value});
+  await loadCoreData(); renderSettingsBody('students');
+}
+async function deleteTeacher(id,name){
+  if(!confirm(`確定要刪除老師「${name}」嗎？該老師任教的班級會變成「未指定老師」，不會被刪除。`)) return;
+  await sb.from('teachers').delete().eq('id',id);
+  await loadCoreData(); renderSettingsBody('teachers');
+}
+async function deleteClass(id,name){
+  if(!confirm(`確定要刪除班級「${name}」嗎？這會一併刪除該班級的學生、教案、請假與代課紀錄，無法復原！`)) return;
+  await sb.from('classes').delete().eq('id',id);
+  await loadCoreData(); renderSettingsBody('classes');
+  await renderCalendar();
+}
+async function deleteStudent(id,name){
+  if(!confirm(`確定要刪除學生「${name}」嗎？該生的點名與請假紀錄也會一併刪除，無法復原！`)) return;
+  await sb.from('students').delete().eq('id',id);
   await loadCoreData(); renderSettingsBody('students');
 }
 
