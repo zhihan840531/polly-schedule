@@ -348,6 +348,27 @@
   <!-- 設定 -->
   <section id="view-settings" class="view">
     <div class="card">
+      <h2>📚 整學期資料匯入（上傳點名表＋課綱）</h2>
+      <p class="muted">直接上傳點名表（班級代碼、老師、日期、學生名單）和課綱（每堂課教什麼），AI 會自動把兩份對照起來，整學期每一堂課的日期都會對應好教案內容，一次建好班級、學生、全部教案，不用一堂一堂手動輸入。兩個檔案都支援圖片或 PDF。</p>
+      <label>1️⃣ 點名表／班表（必填）</label>
+      <input type="file" id="semFile1" accept="image/*,.pdf">
+      <label>2️⃣ 課綱（選填，沒有的話只會建班級跟學生）</label>
+      <input type="file" id="semFile2" accept="image/*,.pdf">
+      <button class="btn amber" onclick="runAiExtractSemester()">✨ AI 整理並建立整學期資料</button>
+      <p class="muted" id="semStatus"></p>
+      <div id="semPreview"></div>
+    </div>
+
+    <div class="card">
+      <h2>📋 貼上班表資料（AI 自動整理）</h2>
+      <p class="muted">把課表匯出的文字整段貼上來（班級代碼、老師、上課時間、學生名單都可以一起貼），AI 會自動幫你判讀、整理成班級和學生資料，確認後一鍵建立，不用一個一個手動輸入。</p>
+      <textarea id="rosterPaste" style="min-height:140px;" placeholder="把整段資料貼在這裡，例如：&#10;115/09/10&#10;116/01/07&#10;26-EIA-01&#10;R 13:00~15:30&#10;Ann Nicole Ong&#10;本校B&#10;&#10;毛梓睿　Ray　EIA　三玉2-1&#10;鄧予樂　ChooChoo　EIA　天母2-1"></textarea>
+      <button class="btn amber" onclick="runAiExtractRoster()">✨ AI 整理並建立</button>
+      <p class="muted" id="rosterStatus"></p>
+      <div id="rosterPreview"></div>
+    </div>
+
+    <div class="card">
       <h2>⚙️ 基本資料維護</h2>
       <div class="section-tabs">
         <button class="active" data-s="teachers" onclick="settingsTab('teachers',this)">老師</button>
@@ -1064,6 +1085,285 @@ async function saveCalendarExtraction(){
   document.getElementById('calUpPreview').innerHTML = '';
   document.getElementById('calFile').value = '';
   await renderCalendar();
+}
+
+/* ============ AI 整理班表／名單貼上資料 ============ */
+async function runAiExtractRoster(){
+  const key = localStorage.getItem('cal_anthropic_key');
+  if(!key){ alert('請先貼上 Anthropic API Key（下面「AI 辨識金鑰」卡片）'); return; }
+  const raw = document.getElementById('rosterPaste').value.trim();
+  if(!raw){ alert('請先貼上資料'); return; }
+
+  const statusEl = document.getElementById('rosterStatus');
+  statusEl.textContent = '⏳ AI 整理中，請稍候…';
+  document.getElementById('rosterPreview').innerHTML = '';
+
+  try{
+    const prompt = `這是補習班的班表／名單資料，格式可能不太規則（Tab或空白分隔），請幫我判讀並只回傳 JSON，不要任何其他文字、不要 markdown code fence。格式：
+{"class_code":"班級代碼","class_name":"建議的班級顯示名稱（可包含代碼+時間，例如：26-EIA-01 週四13:00-15:30）","teacher_name":"授課老師姓名","weekday":0到6的數字（0=日,1=一,2=二,3=三,4=四,5=五,6=六；如果原文用英文字母代表星期，常見對照為 M=一 T=二 W=三 R=四 F=五 S=六 U=日，請自行判斷）,"start_time":"HH:MM","end_time":"HH:MM","location":"上課地點","note":"其他備註（例如日期區間、行政聯絡人等）","students":[{"name":"學生中文姓名","note":"其他資訊，例如英文名、原班級代碼，用頓號或逗號連接"}]}
+規則：
+- 如果某欄位資料裡沒有，留空字串或空陣列即可，不要瞎猜。
+- 學生姓名一定要照原文抄錄。
+- 這份資料：
+${raw}`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 3000,
+        messages: [{ role:'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    if(data.error){ throw new Error(data.error.message || 'API 回傳錯誤'); }
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock){ throw new Error('AI 沒有回傳可判讀的內容'); }
+    const cleaned = textBlock.text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(cleaned);
+    statusEl.textContent = `✅ 整理完成，共 ${((parsed.students)||[]).length} 位學生，請確認後建立：`;
+    renderRosterPreview(parsed);
+  }catch(err){
+    statusEl.textContent = '❌ 整理失敗：'+err.message+'（可以到上面「基本資料維護」手動新增）';
+  }
+}
+
+function renderRosterPreview(parsed){
+  const weekdayLabel = ['日','一','二','三','四','五','六'];
+  const students = parsed.students||[];
+  const html = `
+    <div class="lp-callout">
+      <label>班級顯示名稱</label><input id="rosClassName" value="${(parsed.class_name||parsed.class_code||'').replace(/"/g,'&quot;')}">
+      <div class="row2">
+        <div><label>授課老師</label><input id="rosTeacher" value="${(parsed.teacher_name||'').replace(/"/g,'&quot;')}"></div>
+        <div><label>星期</label><select id="rosWeekday">${weekdayLabel.map((w,i)=>`<option value="${i}" ${parsed.weekday===i?'selected':''}>星期${w}</option>`).join('')}</select></div>
+      </div>
+      <div class="row2">
+        <div><label>開始時間</label><input type="time" id="rosStart" value="${parsed.start_time||''}"></div>
+        <div><label>結束時間</label><input type="time" id="rosEnd" value="${parsed.end_time||''}"></div>
+      </div>
+      <label>地點／備註</label><input id="rosNote" value="${((parsed.location||'')+(parsed.note?('　'+parsed.note):'')).replace(/"/g,'&quot;')}">
+    </div>
+    <h3 style="font-size:.85rem;margin-top:12px;">學生名單（可手動調整，取消勾選可不建立）</h3>
+    <div id="rosStudentRows">
+      ${students.map((s,i)=>`
+        <div class="todo-item">
+          <input type="checkbox" class="rosInclude" data-i="${i}" checked>
+          <div class="t" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <input class="rosName" data-i="${i}" value="${(s.name||'').replace(/"/g,'&quot;')}" style="width:110px;">
+            <input class="rosNote" data-i="${i}" value="${(s.note||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:120px;">
+          </div>
+        </div>`).join('')}
+    </div>
+    <button class="btn amber" onclick="saveRosterExtraction()">💾 建立班級與學生</button>
+  `;
+  document.getElementById('rosterPreview').innerHTML = html;
+}
+
+async function saveRosterExtraction(){
+  const className = document.getElementById('rosClassName').value.trim();
+  if(!className){ alert('請輸入班級名稱'); return; }
+  const teacherName = document.getElementById('rosTeacher').value.trim();
+  const weekday = parseInt(document.getElementById('rosWeekday').value);
+  const startTime = document.getElementById('rosStart').value || null;
+  const endTime = document.getElementById('rosEnd').value || null;
+  const note = document.getElementById('rosNote').value;
+
+  // 老師：找同名的，沒有就新增
+  let teacherId = null;
+  if(teacherName){
+    let t = TEACHERS.find(x=>x.name===teacherName);
+    if(!t){
+      const {data} = await sb.from('teachers').insert({name:teacherName}).select().single();
+      t = data;
+    }
+    teacherId = t.id;
+  }
+
+  // 班級：找同名的，沒有就新增
+  let cls = CLASSES.find(c=>c.name===className);
+  if(!cls){
+    const {data,error} = await sb.from('classes').insert({name:className, teacher_id:teacherId, weekday, start_time:startTime, end_time:endTime, note}).select().single();
+    if(error){ alert('建立班級失敗：'+error.message); return; }
+    cls = data;
+  } else {
+    await sb.from('classes').update({teacher_id:teacherId, weekday, start_time:startTime, end_time:endTime, note}).eq('id',cls.id);
+  }
+
+  // 學生
+  const names = document.querySelectorAll('.rosName');
+  const notes = document.querySelectorAll('.rosNote');
+  const includes = document.querySelectorAll('.rosInclude');
+  let added = 0;
+  for(let i=0;i<names.length;i++){
+    if(!includes[i].checked || !names[i].value.trim()) continue;
+    const nm = names[i].value.trim();
+    const exists = STUDENTS.find(s=>s.name===nm && s.class_id===cls.id);
+    if(exists) continue;
+    await sb.from('students').insert({name:nm, class_id:cls.id, note:notes[i].value});
+    added++;
+  }
+
+  document.getElementById('rosterStatus').textContent = `✅ 已建立班級「${className}」，新增 ${added} 位學生！`;
+  document.getElementById('rosterPreview').innerHTML = '';
+  document.getElementById('rosterPaste').value = '';
+  await loadCoreData();
+  renderSettingsBody('classes');
+}
+
+/* ============ AI 整理整學期資料（點名表＋課綱） ============ */
+async function runAiExtractSemester(){
+  const key = localStorage.getItem('cal_anthropic_key');
+  if(!key){ alert('請先貼上 Anthropic API Key（下面「AI 辨識金鑰」卡片）'); return; }
+  const f1 = document.getElementById('semFile1').files[0];
+  const f2 = document.getElementById('semFile2').files[0];
+  if(!f1){ alert('請至少上傳點名表／班表'); return; }
+
+  const statusEl = document.getElementById('semStatus');
+  statusEl.textContent = '⏳ AI 整理中，資料量較大，可能要 30-60 秒，請耐心等候…';
+  document.getElementById('semPreview').innerHTML = '';
+
+  try{
+    const blocks = [];
+    async function toBlock(file){
+      const base64 = await fileToBase64(file);
+      const isPdf = (file.type === 'application/pdf') || file.name.toLowerCase().endsWith('.pdf');
+      return isPdf
+        ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data: base64 } }
+        : { type:'image', source:{ type:'base64', media_type: file.type||'image/jpeg', data: base64 } };
+    }
+    blocks.push(await toBlock(f1));
+    if(f2) blocks.push(await toBlock(f2));
+
+    const prompt = `第一份檔案是補習班的點名表／班表（包含班級代碼、老師、上課起訖日期、每次上課星期幾與時間、學生名單，以及「第幾堂課＝哪一天」的對照表）。${f2?'第二份檔案是課綱／教案總表（每一堂課要教什麼內容、教材頁數、回家作業）。':''}
+請把${f2?'兩份資料對照合併':'這份資料'}，只回傳 JSON，不要任何其他文字、不要 markdown code fence。格式：
+{
+  "class_name":"建議班級顯示名稱（例如班級代碼）",
+  "teacher_name":"授課老師姓名",
+  "start_time":"HH:MM",
+  "end_time":"HH:MM",
+  "note":"上課星期幾＋日期區間＋地點等備註",
+  "students":[{"name":"學生中文姓名","note":"英文名或其他資訊"}],
+  "sessions":[{"session_number":1,"date":"YYYY-MM-DD（民國年要+1911換算成西元年）","topic":"本堂主題摘要","materials":"教材頁數等","homework":"回家作業"}]
+}
+規則：
+- sessions 陣列要包含點名表上列出的每一堂課日期，即使${f2?'課綱沒有對應內容也要保留該堂日期，topic/materials/homework 留空字串':'沒有課綱資料，topic/materials/homework 都留空字串'}。
+- 日期一律轉換成西元年 YYYY-MM-DD。
+- 學生姓名照原文抄錄。`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 8000,
+        messages: [{ role:'user', content: [ ...blocks, { type:'text', text: prompt } ] }]
+      })
+    });
+    const data = await resp.json();
+    if(data.error){ throw new Error(data.error.message || 'API 回傳錯誤'); }
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock){ throw new Error('AI 沒有回傳可判讀的內容'); }
+    const cleaned = textBlock.text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(cleaned);
+    const sessions = parsed.sessions||[];
+    statusEl.textContent = `✅ 整理完成：${(parsed.students||[]).length} 位學生、${sessions.length} 堂課，請確認後建立：`;
+    renderSemesterPreview(parsed);
+  }catch(err){
+    statusEl.textContent = '❌ 整理失敗：'+err.message+'（可以改用下面「貼上班表資料」或手動新增）';
+  }
+}
+
+function renderSemesterPreview(parsed){
+  window._semData = parsed;
+  const students = parsed.students||[];
+  const sessions = parsed.sessions||[];
+  const first5 = sessions.slice(0,5);
+  const html = `
+    <div class="lp-callout">
+      <label>班級顯示名稱</label><input id="semClassName" value="${(parsed.class_name||'').replace(/"/g,'&quot;')}">
+      <div class="row2">
+        <div><label>授課老師</label><input id="semTeacher" value="${(parsed.teacher_name||'').replace(/"/g,'&quot;')}"></div>
+        <div><label>時段</label>
+          <div style="display:flex;gap:4px;">
+            <input type="time" id="semStart" value="${parsed.start_time||''}">
+            <input type="time" id="semEnd" value="${parsed.end_time||''}">
+          </div>
+        </div>
+      </div>
+      <label>備註</label><input id="semNote" value="${(parsed.note||'').replace(/"/g,'&quot;')}">
+    </div>
+    <h3 style="font-size:.85rem;margin-top:12px;">學生名單（${students.length} 位）</h3>
+    <div>${students.map(s=>`<span class="pill arranged" style="margin:2px;">${s.name}${s.note?(' '+s.note):''}</span>`).join('') || '<span class="muted">無</span>'}</div>
+    <h3 style="font-size:.85rem;margin-top:12px;">課程日期（共 ${sessions.length} 堂，以下顯示前 5 堂預覽）</h3>
+    <div>${first5.map(s=>`<div class="item-row"><b>${s.date}</b>　${s.topic||'<span class="muted">（無教案內容）</span>'}</div>`).join('')}</div>
+    ${sessions.length>5?`<p class="muted">…其餘 ${sessions.length-5} 堂建立後可到「資料區」查看，有誤可自行修改。</p>`:''}
+    <button class="btn amber" onclick="saveSemesterExtraction()">💾 建立班級、學生與全部教案</button>
+  `;
+  document.getElementById('semPreview').innerHTML = html;
+}
+
+async function saveSemesterExtraction(){
+  const parsed = window._semData;
+  if(!parsed){ alert('資料遺失，請重新整理一次'); return; }
+  const className = document.getElementById('semClassName').value.trim();
+  if(!className){ alert('請輸入班級名稱'); return; }
+  const teacherName = document.getElementById('semTeacher').value.trim();
+  const startTime = document.getElementById('semStart').value || null;
+  const endTime = document.getElementById('semEnd').value || null;
+  const note = document.getElementById('semNote').value;
+
+  document.getElementById('semStatus').textContent = '⏳ 建立中，資料量較大請稍候…';
+
+  let teacherId = null;
+  if(teacherName){
+    let t = TEACHERS.find(x=>x.name===teacherName);
+    if(!t){ const {data} = await sb.from('teachers').insert({name:teacherName}).select().single(); t = data; }
+    teacherId = t.id;
+  }
+
+  let cls = CLASSES.find(c=>c.name===className);
+  if(!cls){
+    const {data,error} = await sb.from('classes').insert({name:className, teacher_id:teacherId, start_time:startTime, end_time:endTime, note}).select().single();
+    if(error){ alert('建立班級失敗：'+error.message); return; }
+    cls = data;
+  } else {
+    await sb.from('classes').update({teacher_id:teacherId, start_time:startTime, end_time:endTime, note}).eq('id',cls.id);
+  }
+
+  let studentAdded = 0;
+  for(const s of (parsed.students||[])){
+    if(!s.name) continue;
+    const exists = STUDENTS.find(x=>x.name===s.name && x.class_id===cls.id);
+    if(exists) continue;
+    await sb.from('students').insert({name:s.name, class_id:cls.id, note:s.note||''});
+    studentAdded++;
+  }
+
+  let planAdded = 0;
+  for(const s of (parsed.sessions||[])){
+    if(!s.date) continue;
+    await sb.from('lesson_plans').upsert({class_id:cls.id, session_date:s.date, topic:s.topic||'', materials:s.materials||'', homework:s.homework||''}, {onConflict:'class_id,session_date'});
+    planAdded++;
+  }
+
+  document.getElementById('semStatus').textContent = `✅ 完成！班級「${className}」新增 ${studentAdded} 位學生、建立 ${planAdded} 堂教案。`;
+  document.getElementById('semPreview').innerHTML = '';
+  document.getElementById('semFile1').value = '';
+  document.getElementById('semFile2').value = '';
+  await loadCoreData();
+  renderSettingsBody('classes');
 }
 
 /* ============ 其他行程 ============ */
