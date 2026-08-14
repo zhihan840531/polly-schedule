@@ -253,21 +253,6 @@
       <p class="muted" id="calUpStatus"></p>
       <div id="calUpPreview"></div>
     </div>
-
-    <div class="card" id="dayDetail" style="display:none;">
-      <button class="close-x" onclick="document.getElementById('dayDetail').style.display='none'">✕</button>
-      <h2 id="ddTitle">日期</h2>
-      <div id="ddBody"></div>
-      <div class="kv">
-        <button class="btn" onclick="openLeaveForm()">＋學生請假</button>
-        <button class="btn green" onclick="openSubForm()">＋老師代課</button>
-        <button class="btn ghost" onclick="openPlanForm()">＋教案</button>
-        <button class="btn ghost" onclick="openEventForm()">＋其他行程</button>
-      </div>
-      <label>📓 今日工作日誌／備忘</label>
-      <textarea id="ddLog" placeholder="今天處理了什麼？想到什麼要記住的事都可以寫在這裡…"></textarea>
-      <button class="btn ghost" onclick="saveDailyLog()">儲存日誌</button>
-    </div>
   </section>
 
   <!-- 學生請假 -->
@@ -595,9 +580,14 @@ async function openDay(ds){
   selectedDate = ds;
   renderCalendar();
   const info = monthData[ds] || {plans:[],leaves:[],subs:[],events:[],todos:[]};
-  document.getElementById('dayDetail').style.display='block';
-  document.getElementById('ddTitle').textContent = `${ds} 詳情`;
-  let html = '';
+
+  let html = `<h2>${ds}</h2>
+    <div class="kv">
+      <button class="btn" onclick="openLeaveForm()">＋學生請假</button>
+      <button class="btn green" onclick="openSubForm()">＋老師代課</button>
+      <button class="btn ghost" onclick="openPlanForm()">＋教案</button>
+      <button class="btn ghost" onclick="openEventForm()">＋其他行程</button>
+    </div>`;
 
   if(info.leaves.length){
     html += `<h3 style="font-size:.85rem;color:var(--stamp-red);">🙋 學生請假</h3>`;
@@ -607,7 +597,7 @@ async function openDay(ds){
         <b>${studentName(lv.student_id)}</b>（${className(lv.class_id)}）
         <span class="pill ${lv.makeup_status==='已完成'?'done':lv.makeup_status==='已安排'?'arranged':'pending'}">${lv.makeup_status}</span>
         <div class="meta">原因：${lv.reason||'—'}</div>
-        ${plan ? `<div class="lp-callout"><b>當天進度：</b>${plan.topic||''}${plan.homework?'　作業：'+plan.homework:''}</div>` : `<div class="meta">⚠️ 尚未建立當天教案，請至「教案」新增以便查詢補課進度</div>`}
+        ${plan ? `<div class="lp-callout"><b>當天進度：</b>${plan.topic||''}${plan.homework?'　作業：'+plan.homework:''}</div>` : `<div class="meta">⚠️ 尚未建立當天教案，請至「資料區」新增以便查詢補課進度</div>`}
       </div>`;
     }
   }
@@ -636,12 +626,19 @@ async function openDay(ds){
       html += `<div class="item-row">${t.title}</div>`;
     }
   }
-  if(!html) html = '<p class="muted">這天目前沒有任何登記。</p>';
-  document.getElementById('ddBody').innerHTML = html;
+
+  html += `<label>📓 今日工作日誌／備忘</label>
+    <textarea id="ddLog" placeholder="今天處理了什麼？想到什麼要記住的事都可以寫在這裡…"></textarea>
+    <button class="btn ghost" onclick="saveDailyLog()">儲存日誌</button>`;
+
+  openOverlay(html);
 
   const {data} = await sb.from('daily_logs').select('*').eq('log_date',ds).maybeSingle();
-  document.getElementById('ddLog').value = data?.content || '';
-  document.getElementById('ddLog').dataset.date = ds;
+  const logEl = document.getElementById('ddLog');
+  if(logEl){
+    logEl.value = data?.content || '';
+    logEl.dataset.date = ds;
+  }
 }
 
 async function saveDailyLog(){
