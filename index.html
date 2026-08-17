@@ -226,6 +226,18 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 <div class="row"><button class="btn" onclick="closeModal('classModal')">取消</button><button class="btn primary" onclick="saveClass()">儲存</button></div></div></div>
 
 
+<div class="modal" id="calendarEventModal"><div class="sheet" style="width:min(520px,100%)">
+<div class="section-title"><h2>📅 編輯行事曆事件</h2><button class="btn" onclick="closeModal('calendarEventModal')">✕</button></div>
+<div class="form">
+<input id="calendarEventId" type="hidden">
+<label>日期<input id="calendarEventDate" type="date"></label>
+<label>名稱<input id="calendarEventTitle"></label>
+<label>備註<textarea id="calendarEventNote" style="min-height:90px"></textarea></label>
+</div>
+<div class="row" style="justify-content:space-between;flex-wrap:wrap">
+<button class="btn danger" onclick="deleteCalendarEvent()">🗑️ 刪除</button>
+<div style="display:flex;gap:8px"><button class="btn" onclick="closeModal('calendarEventModal')">取消</button><button class="btn primary" onclick="saveCalendarEventEdit()">儲存修改</button></div>
+</div></div></div>
 <div class="modal" id="schoolCalModal"><div class="sheet" style="width:min(780px,100%)">
 <div class="section-title"><h2>📅 學校行事曆匯入預覽</h2><button class="btn" onclick="closeModal('schoolCalModal')">✕</button></div>
 <p style="color:var(--muted);font-size:13px">請先確認日期與活動名稱，辨識錯誤可以直接修改再匯入。</p>
@@ -1218,8 +1230,23 @@ async function copyAndCloseCall(){
 }
 
 let view=new Date(2026,7,1);
+function openCalendarEvent(id){
+ const r=state.records.find(x=>String(x.id)===String(id));if(!r)return alert('找不到這筆行事');
+ calendarEventId.value=r.id;calendarEventDate.value=r.date||'';calendarEventTitle.value=r.title||'';calendarEventNote.value=r.note||'';calendarEventModal.classList.add('open');
+}
+function saveCalendarEventEdit(){
+ const r=state.records.find(x=>String(x.id)===String(calendarEventId.value));if(!r)return alert('找不到這筆行事');
+ const title=calendarEventTitle.value.trim();if(!title)return alert('請輸入名稱');
+ r.date=calendarEventDate.value||r.date;r.title=title;r.note=calendarEventNote.value.trim();persist();closeModal('calendarEventModal');renderAll();
+}
+function deleteCalendarEvent(){
+ const r=state.records.find(x=>String(x.id)===String(calendarEventId.value));if(!r)return;
+ if(!confirm(`確定要刪除「${r.title}」嗎？`))return;
+ state.records=state.records.filter(x=>String(x.id)!==String(r.id));persist();closeModal('calendarEventModal');renderAll();
+}
+
 function shiftMonth(n){view=new Date(view.getFullYear(),view.getMonth()+n,1);renderCalendar()}
-function renderCalendar(){monthTitle.textContent=`${view.getFullYear()} 年 ${view.getMonth()+1} 月`;let y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());let html=['日','一','二','三','四','五','六'].map(x=>`<div class="dow">${x}</div>`).join('');for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;let rec=state.records.filter(x=>x.date===ds);html+=`<div class="day ${d.getMonth()!==m?'muted':''} ${ds===today()?'today':''}" onclick="openQuick('event','${ds}')"><b>${d.getDate()}</b>${rec.slice(0,3).map(r=>`<span class="badge">${r.type==='absence'?'請假 ':r.type==='sub'?'代課 ':r.type==='task'?'✓ ':''}${r.title}</span>`).join('')}</div>`}calendar.innerHTML=html}
+function renderCalendar(){monthTitle.textContent=`${view.getFullYear()} 年 ${view.getMonth()+1} 月`;let y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());let html=['日','一','二','三','四','五','六'].map(x=>`<div class="dow">${x}</div>`).join('');for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;let rec=state.records.filter(x=>x.date===ds);html+=`<div class="day ${d.getMonth()!==m?'muted':''} ${ds===today()?'today':''}" onclick="openQuick('event','${ds}')"><b>${d.getDate()}</b>${rec.slice(0,3).map(r=>`<span class="badge" style="cursor:pointer" title="點擊可編輯或刪除" onclick="event.stopPropagation();openCalendarEvent(${r.id})">${r.type==='absence'?'請假 ':r.type==='sub'?'代課 ':r.type==='task'?'✓ ':''}${r.title}</span>`).join('')}</div>`}calendar.innerHTML=html}
 
 const POLLY_CLASS_DATA=[{"code": "26-PHA-01", "name": "PHA", "status": "on going", "start": "115/09/07", "end": "115/12/30", "schedule": "MWF 16:30~18:45", "teacher": "Ann Nicole Ong", "admin": "Polly", "students": [["王敘恆", "Ryder", "5/13/2021", "雙連"], ["陳泓睿", "Ray", "9/12/2020", "達義"], ["吳季洋", "John", "10/22/2020", "新三玉"], ["莊恩平", "Timmy", "12/3/2020", "雙連"], ["莊恩欣", "Clair", "12/3/2020", "雙連"], ["盧宥呈", "Lucas", "9/29/2020", "雙連"], ["李衍霆", "Eddie", "6/14/2021", "心美"], ["汪子丞", "Vincent", "2/22/2021", "道思"], ["林子軒", "Green", "5/3/2021", "天母附幼"], ["何羿學", "Max", "3/25/2021", "新三玉"], ["何羿蓁", "Emma", "3/25/2021", "新三玉"], ["戴境", "Ethan", "10/8/2020", "優格"], ["厲以澄", "Todd", "8/27/2021", "優格"], ["陳宥衡", "Johan", "4/13/2021", "好來"], ["葉品宸", "Ashley", "5/25/2021", "雙連"], ["黃澄昊", "Hugo", "2/21/2021", "心愛"]]}, {"code": "26-PHB-02", "name": "PHB", "status": "on going", "start": "115/09/30", "end": "116/03/31", "schedule": "MW 16:30~18:45", "teacher": "Kathryn Tanco", "admin": "Polly", "students": [["黃琳恩", "Riley", "12/31/2020", "雙連"], ["吳家辰", "Jasper", "1/5/2021", "熊寶貝"], ["王子熙", "Jayce", "3/31/2021", "心愛"], ["康宸昊", "Jeter", "4/8/2021", "熊寶貝"], ["羅巧羽", "Rosa", "4/2/2021", "熊寶貝"], ["湯芸萱", "Irene", "6/3/2021", "雙連"], ["鄭力晨", "Ethan", "8/8/2021", "心愛"], ["郭贊", "Zan", "8/14/2021", "熊寶貝"], ["呂采盈", "Osa", "9/26/2020", "士東附幼"], ["莊沐芸", "Bella", "11/11/2020", "新三玉"], ["莊沐蓉", "Ella", "11/11/2020", "新三玉"]]}, {"code": "26-PHC-01", "name": "PHC", "status": "on going", "start": "115/09/01", "end": "116/02/25", "schedule": "TR 16:30~18:30", "teacher": "Ann Nicole Ong", "admin": "Polly", "students": [["張言雋", "Jun", "9/19/2020", "熊寶貝"], ["張淑聆", "Minnie", "9/26/2020", "雙連"], ["鍾喬安", "Elsa", "10/14/2020", "新三玉"], ["蒲詠希", "Alice", "10/18/2020", "何嘉仁"], ["吳品誼", "Penny", "10/28/2020", "愛德恩"], ["賴宇喬", "Josh", "11/9/2020", "薇閣附幼"], ["蕭湘霓", "Sunny", "11/25/2020", "何嘉仁"], ["游媛珺", "Joanna", "12/26/2020", "十大"], ["林知謙", "Chien", "1/7/2021", "雙連"], ["李欣蕾", "Doris", "1/10/2021", "雙連"]]}, {"code": "26-1A-01", "name": "1A", "status": "semester", "start": "115/08/31", "end": "116/01/19", "schedule": "MWF 13:30~16:00", "teacher": "Ann Nicole Ong", "admin": "Polly", "students": [["連麒翔", "Tony", "1/13/2020", "天母1-"], ["余瓅", "Lily", "1/14/2020", "天母1-"], ["葛仲亮", "Liang Liang", "4/2/2020", "天母1-"], ["謝雨靚", "Gina", "10/9/2019", "士東1-"], ["何羿萬", "Ethan", "1/10/2020", "天母1-"], ["徐晶晶", "Ginny", "9/28/2019", "天母1-"], ["許恩齊", "Enzi", "3/20/2020", "湖山1-"], ["何訢卉", "Rachel", "3/24/2020", "天母1-"], ["楊晨安", "Rico", "6/22/2020", "天母1-"], ["詹咏致", "Yoyo", "7/1/2020", "天母1-8"], ["黃家萱", "Miffy", "8/29/2020", "天母1-"], ["蘇紫芯", "Esther", "7/31/2017", "天母4-5"], ["陳彩生", "Bulla", "8/17/2020", "天母1-"]]}, {"code": "26-2A-01", "name": "2A", "status": "semester", "start": "115/08/31", "end": "116/01/19", "schedule": "MWF 13:30~16:00", "teacher": "Adriel Setyawan", "admin": "Polly", "students": [["宋繼恩", "Jojo", "12/28/2018", "三玉2-4"], ["趙又澄", "Roy", "2/20/2019", "三玉2-2"], ["詹淽妘", "Momo", "3/6/2019", "天母2-3"], ["陳建辰", "Joshua", "4/19/2019", "士東2-3"], ["吳妡苓", "Callene", "5/7/2019", "雨農2-4"], ["陳知妘", "Mira", "5/8/2019", "明德2-2"], ["林品妍", "Amber", "6/20/2019", "天母2-5"], ["林品學", "Mason", "6/20/2019", "天母2-6"], ["曾郁喬", "Hami", "6/21/2019", "天母2-9"], ["宋品霓", "Olie", "6/25/2019", "士東2-2"], ["曹博安", "Bryant", "8/5/2019", "士東2-3"]]}, {"code": "26-2A-02", "name": "2A", "status": "on going", "start": "115/09/01", "end": "116/02/25", "schedule": "TR 16:45-19:00", "teacher": "Adriel Setyawan", "admin": "Polly", "students": [["李安", "Finn", "10/7/2016", "福林4-"], ["黃德睿", "Ray", "9/11/2018", "雨聲2-甲"], ["黃俞涵", "Dolly", "10/21/2018", "薇閣2-"], ["陳宣妤", "Clara", "1/5/2019", "華興2"], ["賴澄妍", "Patty", "6/17/2019", "薇閣2-"], ["魏于翔", "Shawn", "1/12/2015", "三玉6-2"], ["柯昕皓", "Howard", "1/5/2019", "天母2-9"], ["黃宥衡", "Ryder", "6/16/2019", "薇閣2-"], ["陳禹築", "Joy", "1/12/2015", "三玉6-"]]}];
 
