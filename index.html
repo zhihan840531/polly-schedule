@@ -247,11 +247,28 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
           <option value="家長">家長</option>
         </select>
       </label>
-      <label>格式
+      <label>語氣
+        <select id="callTone">
+          <option value="polly" selected>Polly 日常口吻</option>
+          <option value="warm">溫柔鼓勵</option>
+          <option value="formal">較正式</option>
+          <option value="concise">簡潔行政</option>
+        </select>
+      </label>
+    </div>
+    <div class="call-row">
+      <label>字數
         <select id="callLength">
-          <option value="short">精簡</option>
-          <option value="medium" selected>一般</option>
-          <option value="long">詳細</option>
+          <option value="short">短｜約 60–90 字</option>
+          <option value="medium" selected>中｜約 100–150 字</option>
+          <option value="long">長｜約 160–220 字</option>
+        </select>
+      </label>
+      <label>生成偏好
+        <select id="callFocus">
+          <option value="balanced" selected>自然平衡</option>
+          <option value="positive">偏正向描述</option>
+          <option value="issue">問題與後續較清楚</option>
         </select>
       </label>
     </div>
@@ -1012,7 +1029,12 @@ async function generateCallRecord(){
     autoTranslate:callTranslate.checked,
     fixTypos:callFixTypos.checked,
     length:callLength.value||'medium',
-    tone:'polly'
+    tone:callTone.value||'polly',
+    ...(callFocus.value==='positive'
+      ? {contextInfo:'生成時請自然保留正向觀察與孩子亮點，但不要過度誇張。'}
+      : callFocus.value==='issue'
+        ? {contextInfo:'生成時請把需要提醒、家長反應與後續處理寫得清楚，但語氣保持自然、不責備。'}
+        : {})
   };
 
   const btn=[...document.querySelectorAll('#callModal button')].find(b=>b.textContent.includes('生成電訪紀錄'));
