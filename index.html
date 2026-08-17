@@ -63,6 +63,16 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 .call-student-btn:hover{background:var(--yellow)}
 @media(max-width:620px){.call-row{grid-template-columns:1fr}}
 
+
+.student-clickable{cursor:pointer}
+.student-clickable:hover{background:#fffdf2}
+.note-card{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:#fff}
+.note-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.note-date{font-size:12px;color:var(--muted)}
+.note-text{white-space:pre-wrap;line-height:1.65;margin-top:7px}
+.note-actions{display:flex;gap:6px;flex-wrap:wrap}
+.notebook-head{background:#fff9e7;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest?v=3"/>
 <meta name="theme-color" content="#FFF2CC"/>
@@ -145,6 +155,41 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
   </div>
   <div id="detailStudents"></div>
   <div id="detailLessons" style="display:none"></div>
+</div></div>
+
+
+<div class="modal" id="studentNotebookModal"><div class="sheet" style="width:min(820px,100%)">
+  <div class="section-title"><h2 id="notebookTitle">📒 學生記事本</h2><button class="btn" onclick="closeModal('studentNotebookModal')">✕</button></div>
+  <div id="notebookSummary" class="notebook-head"></div>
+
+  <div class="form">
+    <div class="call-row">
+      <label>日期<input id="studentNoteDate" type="date"></label>
+      <label>類型
+        <select id="studentNoteType">
+          <option value="家長聯繫">家長聯繫</option>
+          <option value="上課觀察">上課觀察</option>
+          <option value="請假／補課">請假／補課</option>
+          <option value="學習狀況">學習狀況</option>
+          <option value="其他">其他</option>
+        </select>
+      </label>
+    </div>
+    <label>快速記事
+      <textarea id="studentNoteText" placeholder="想到什麼就打什麼：LINE內容、媽媽說什麼、老師觀察、孩子今天發生什麼、要追蹤的事情……不用整理，也不用怕打錯字。"></textarea>
+    </label>
+    <div class="call-tools">
+      <button class="btn" onclick="pasteStudentNote()">📋 貼上 LINE 文字</button>
+      <button class="btn" onclick="smoothStudentNote()">✨ 改錯字＆順一下</button>
+      <button class="btn primary" onclick="saveStudentNote()">＋ 存進記事本</button>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:20px">
+    <h2 style="font-size:17px">歷史記事</h2>
+    <button class="btn primary" onclick="notesToCallRecord()">✨ 整理成電訪紀錄</button>
+  </div>
+  <div id="studentNotesList"></div>
 </div></div>
 
 <div class="modal" id="callModal"><div class="sheet" style="width:min(760px,100%)">
@@ -468,8 +513,8 @@ function showClassDetail(id){
     </div>`;
   const details=(c.studentDetails||[]).length?c.studentDetails:(c.students||[]).map(e=>({chinese:'',english:e,birthday:'',school:''}));
   detailStudents.innerHTML=`<div class="student-table-wrap"><table class="student-table">
-    <thead><tr><th>#</th><th>中文姓名</th><th>English Name</th><th>生日</th><th>學校／班級</th><th>電訪</th></tr></thead>
-    <tbody>${details.map((s,i)=>`<tr><td>${i+1}</td><td>${s.chinese||'—'}</td><td><b>${s.english||'—'}</b></td><td>${s.birthday||'—'}</td><td>${s.school||'—'}</td><td><button class="call-student-btn" onclick="openCallRecord(${c.id},${i});event.stopPropagation()">複製成電訪紀錄</button></td></tr>`).join('')}</tbody>
+    <thead><tr><th>#</th><th>中文姓名</th><th>English Name</th><th>生日</th><th>學校／班級</th><th>記事</th></tr></thead>
+    <tbody>${details.map((s,i)=>`<tr class="student-clickable" onclick="openStudentNotebook(${c.id},${i})"><td>${i+1}</td><td>${s.chinese||'—'}</td><td><b>${s.english||'—'}</b></td><td>${s.birthday||'—'}</td><td>${s.school||'—'}</td><td><button class="call-student-btn" onclick="openStudentNotebook(${c.id},${i});event.stopPropagation()">📒 開啟記事本</button></td></tr>`).join('')}</tbody>
   </table></div>`;
   const ls=c.lessons||[];
   detailLessons.innerHTML=ls.length?ls.map(l=>`<div class="record"><span class="grow"><b>${l.date||'未配日期'}　Class ${l.classNo} · ${l.unit||''}</b><small style="display:block;color:var(--muted);margin-top:4px">${l.content||'尚未對應課綱'}</small></span></div>`).join(''):'<div class="empty">這個班級還沒有匯入課程資料</div>';
@@ -484,6 +529,120 @@ function switchClassTab(tab){
   tabLessons.classList.toggle('active',!studentsOn);
 }
 
+
+
+let notebookClassId=null;
+let notebookStudentIndex=0;
+
+function ensureStudentNotes(){
+  if(!state.studentNotes) state.studentNotes=[];
+}
+function notebookStudent(){
+  const c=state.classes.find(x=>x.id===notebookClassId);
+  if(!c)return null;
+  const details=(c.studentDetails||[]).length
+    ? c.studentDetails
+    : (c.students||[]).map(e=>({chinese:'',english:e,birthday:'',school:''}));
+  const s=details[notebookStudentIndex];
+  return s?{c,s}:null;
+}
+function studentNoteKey(c,s){
+  return `${c.code||c.id}::${s.english||''}::${s.chinese||''}`;
+}
+function openStudentNotebook(classId,studentIndex){
+  ensureStudentNotes();
+  notebookClassId=classId;
+  notebookStudentIndex=studentIndex;
+  const cur=notebookStudent();
+  if(!cur)return;
+  notebookTitle.textContent=`📒 ${cur.s.english||cur.s.chinese} 的記事本`;
+  notebookSummary.innerHTML=`<b style="font-size:18px">${cur.s.english||''}${cur.s.chinese?`（${cur.s.chinese}）`:''}</b><br>
+    <span style="color:var(--muted)">${cur.c.code||cur.c.name||''}${cur.s.school?` · ${cur.s.school}`:''}</span>`;
+  studentNoteDate.value=today();
+  studentNoteText.value='';
+  renderStudentNotes();
+  studentNotebookModal.classList.add('open');
+}
+function renderStudentNotes(){
+  ensureStudentNotes();
+  const cur=notebookStudent(); if(!cur)return;
+  const key=studentNoteKey(cur.c,cur.s);
+  const notes=state.studentNotes.filter(n=>n.studentKey===key).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);
+  studentNotesList.innerHTML=notes.length?notes.map(n=>`
+    <div class="note-card">
+      <div class="note-card-head">
+        <div><b>${n.type||'記事'}</b><div class="note-date">${n.date||''}</div></div>
+        <div class="note-actions">
+          <button class="btn" onclick="editStudentNote(${n.id})">編輯</button>
+          <button class="btn danger" onclick="deleteStudentNote(${n.id})">刪除</button>
+        </div>
+      </div>
+      <div class="note-text">${escapeHtml(n.text||'')}</div>
+    </div>`).join(''):'<div class="empty">還沒有記事。平常想到什麼就先丟進來，月底再一次整理成電訪。</div>';
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+async function pasteStudentNote(){
+  try{
+    const t=await navigator.clipboard.readText();
+    if(!t)return alert('剪貼簿沒有文字');
+    studentNoteText.value=(studentNoteText.value?studentNoteText.value+'\n':'')+t;
+  }catch(e){alert('請直接在記事框按 Ctrl+V 貼上 LINE 內容。')}
+}
+function smoothStudentNote(){
+  if(!studentNoteText.value.trim())return alert('先輸入一些內容');
+  // Reuse the same typo/translation helpers, without needing the call modal.
+  let out=correctCommonTypos(studentNoteText.value);
+  out=normalizePunctuation(out);
+  out=dedupePhrases(out);
+  studentNoteText.value=out;
+}
+function saveStudentNote(){
+  ensureStudentNotes();
+  const cur=notebookStudent(); if(!cur)return;
+  const text=studentNoteText.value.trim();
+  if(!text)return alert('先寫一點記事');
+  state.studentNotes.push({
+    id:Date.now(),
+    studentKey:studentNoteKey(cur.c,cur.s),
+    classId:cur.c.id,
+    studentEnglish:cur.s.english||'',
+    studentChinese:cur.s.chinese||'',
+    date:studentNoteDate.value||today(),
+    type:studentNoteType.value,
+    text
+  });
+  studentNoteText.value='';
+  localStorage.setItem(KEY,JSON.stringify(state));
+  renderStudentNotes();
+}
+function editStudentNote(id){
+  ensureStudentNotes();
+  const n=state.studentNotes.find(x=>x.id===id); if(!n)return;
+  const val=prompt('修改記事',n.text);
+  if(val===null)return;
+  n.text=val.trim();
+  localStorage.setItem(KEY,JSON.stringify(state));
+  renderStudentNotes();
+}
+function deleteStudentNote(id){
+  if(!confirm('確定刪除這則記事嗎？'))return;
+  state.studentNotes=state.studentNotes.filter(x=>x.id!==id);
+  localStorage.setItem(KEY,JSON.stringify(state));
+  renderStudentNotes();
+}
+function notesToCallRecord(){
+  ensureStudentNotes();
+  const cur=notebookStudent(); if(!cur)return;
+  const key=studentNoteKey(cur.c,cur.s);
+  const notes=state.studentNotes.filter(n=>n.studentKey===key).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(!notes.length)return alert('目前還沒有記事可以整理');
+  closeModal('studentNotebookModal');
+  openCallRecord(cur.c.id,notebookStudentIndex);
+  callSource.value=notes.map(n=>`${n.date}｜${n.type}｜${n.text}`).join('\n');
+  callSource.focus();
+}
 
 let currentCallClassId=null;
 let currentCallStudentIndex=0;
