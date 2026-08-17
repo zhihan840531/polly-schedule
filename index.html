@@ -77,6 +77,87 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 .student-manage-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap}
 .student-actions{display:flex;gap:6px;flex-wrap:wrap}
 
+
+/* Mobile call-note layout */
+@media(max-width:620px){
+  #callModal .sheet{
+    width:100%;
+    max-width:none;
+    padding:14px 12px 24px;
+  }
+  #callModal .call-row{
+    grid-template-columns:1fr;
+  }
+  #callModal .call-check{
+    min-height:auto;
+    padding:10px 12px;
+    justify-content:flex-start !important;
+    align-items:flex-start;
+    gap:9px;
+    border-radius:12px;
+  }
+  #callModal .call-check input[type="checkbox"]{
+    width:20px;
+    height:20px;
+    min-width:20px;
+    margin:1px 0 0;
+    flex:0 0 20px;
+  }
+  #callModal .call-check label{
+    display:block;
+    width:auto;
+    flex:1 1 auto;
+    margin:0;
+    line-height:1.45;
+    font-size:14px;
+    word-break:normal;
+    overflow-wrap:break-word;
+    white-space:normal;
+  }
+  #callModal .call-check label[for="callTranslate"]{
+    font-size:0;
+  }
+  #callModal .call-check label[for="callTranslate"]::before{
+    content:"自動翻譯英文內容";
+    font-size:14px;
+    display:block;
+    font-weight:700;
+  }
+  #callModal .call-check label[for="callTranslate"]::after{
+    content:"姓名／班級代號會保留";
+    font-size:12px;
+    display:block;
+    color:var(--muted);
+    font-weight:500;
+    margin-top:2px;
+  }
+  #callModal .call-tools{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  #callModal .call-tools .btn{
+    width:100%;
+    padding:10px 8px;
+    white-space:normal;
+  }
+  #callModal textarea{
+    min-height:130px;
+  }
+  #callModal .call-result{
+    min-height:150px;
+  }
+  #callModal button[onclick="generateCallRecord()"]{
+    min-height:48px;
+    font-size:16px;
+  }
+  #callModal .row{
+    gap:8px;
+  }
+}
+
+
+.school-cal-row{display:grid;grid-template-columns:145px 1fr 120px 42px;gap:8px;align-items:center;margin:8px 0}.school-cal-row input,.school-cal-row select{width:100%;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}@media(max-width:620px){.school-cal-row{grid-template-columns:1fr 1fr}.school-cal-title{grid-column:1/-1}}
 </style>
 <link rel="manifest" href="manifest.webmanifest?v=3"/>
 <meta name="theme-color" content="#FFF2CC"/>
@@ -88,6 +169,7 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 <link rel="apple-touch-icon" href="./app-icon.png?v=5">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=5">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -120,6 +202,7 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 
 <section id="data" class="page"><div class="section-title"><div><h1 style="margin:0">資料區</h1><small style="color:var(--muted)">公司資料與 AI 匯入入口</small></div></div><div class="data-grid">
 <div class="upload"><img src="icon-plan.png"><h3>AI 匯入</h3><p>一次選「點名表 PDF + Syllabus PDF」<br>系統會自動辨識並配對</p><input id="aiFiles" type="file" accept="application/pdf,.pdf" multiple onchange="startAIImport(this)"><div id="aiStatus" style="margin-top:10px;color:var(--muted);font-size:13px"></div></div>
+<div class="upload"><div style="font-size:40px;margin-bottom:8px">📅</div><h3>學校行事曆</h3><p>上傳 PDF、Excel 或 CSV<br>辨識日期與學校活動後加入工作台</p><input id="schoolCalFile" type="file" accept=".pdf,.xlsx,.xls,.csv,application/pdf" onchange="startSchoolCalendarImport(this)"><div id="schoolCalStatus" style="margin-top:10px;color:var(--muted);font-size:13px"></div></div>
 <div class="card"><h3>基本資料</h3><p>目前班級 <b id="dataClassCount">0</b> 個</p><p>資料會先儲存在這台裝置的瀏覽器中。</p><button class="btn" onclick="go('classes')">管理班級</button></div>
 </div></section>
 </main>
@@ -143,6 +226,12 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 <div class="row"><button class="btn" onclick="closeModal('classModal')">取消</button><button class="btn primary" onclick="saveClass()">儲存</button></div></div></div>
 
 
+<div class="modal" id="schoolCalModal"><div class="sheet" style="width:min(780px,100%)">
+<div class="section-title"><h2>📅 學校行事曆匯入預覽</h2><button class="btn" onclick="closeModal('schoolCalModal')">✕</button></div>
+<p style="color:var(--muted);font-size:13px">請先確認日期與活動名稱，辨識錯誤可以直接修改再匯入。</p>
+<div id="schoolCalPreview"></div>
+<div class="row"><button class="btn" onclick="closeModal('schoolCalModal')">取消</button><button class="btn primary" onclick="confirmSchoolCalendarImport()">加入行事曆</button></div>
+</div></div>
 <div class="modal" id="importModal"><div class="sheet">
   <div class="section-title"><h2>✨ AI 匯入預覽</h2><button class="btn" onclick="closeModal('importModal')">✕</button></div>
   <div id="importProgress" style="padding:8px 0;color:var(--muted)">正在讀取 PDF…</div>
@@ -342,6 +431,61 @@ function delClass(id){if(confirm('確定刪除這個班級嗎？此版本只刪�
 
 let pendingImport=null;
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
+
+
+let pendingSchoolCalendar=[];
+function schoolDate(v){
+  if(!v)return '';
+  const s=String(v).trim();
+  let m=s.match(/(20\d{2})[\/\-.年]\s*(\d{1,2})[\/\-.月]\s*(\d{1,2})/);
+  if(m)return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  m=s.match(/(\d{2,3})[\/\-.年]\s*(\d{1,2})[\/\-.月]\s*(\d{1,2})/);
+  if(m){let y=+m[1];if(y<1911)y+=1911;return `${y}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`}
+  m=s.match(/(\d{1,2})[\/\-.月]\s*(\d{1,2})/);
+  if(m)return `${new Date().getFullYear()}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+  return '';
+}
+function schoolType(t){return /放假|停課|補假|國定/.test(t)?'放假／停課':/考|評量/.test(t)?'考試／評量':'學校活動'}
+function parseSchoolText(text){
+  const a=[];
+  String(text).split(/\n+/).forEach(line=>{
+    line=line.replace(/\s+/g,' ').trim(); const date=schoolDate(line); if(!date)return;
+    let title=line.replace(/(20\d{2}|\d{2,3})[\/\-.年]\s*\d{1,2}[\/\-.月]\s*\d{1,2}[日]?/,'').replace(/\d{1,2}[\/\-.月]\s*\d{1,2}[日]?/,'').replace(/^[｜|:：\-–—\s]+/,'').trim();
+    if(!title)title='學校行事';
+    a.push({date,title,type:schoolType(title)});
+  }); return a;
+}
+async function startSchoolCalendarImport(inp){
+  const f=inp.files?.[0];if(!f)return;
+  schoolCalStatus.textContent='⏳ 正在讀取…';
+  try{
+    let rows=[],name=f.name.toLowerCase();
+    if(name.endsWith('.xlsx')||name.endsWith('.xls')||name.endsWith('.csv')){
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+      wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false}).forEach(r=>{
+        const vals=(r||[]).filter(x=>x!==undefined&&x!==null&&String(x).trim());
+        let date=''; for(const v of vals){date=schoolDate(v);if(date)break}
+        if(date){const title=vals.filter(v=>!schoolDate(v)).join(' ').trim()||'學校行事';rows.push({date,title,type:schoolType(title)})}
+      }));
+    }else{
+      const doc=await readPdf(f); rows=parseSchoolText(doc.text);
+    }
+    const seen=new Set();pendingSchoolCalendar=rows.filter(x=>{const k=x.date+'|'+x.title;if(seen.has(k))return false;seen.add(k);return true});
+    schoolCalStatus.textContent=`✓ 找到 ${pendingSchoolCalendar.length} 筆，請確認`;
+    renderSchoolCalPreview();schoolCalModal.classList.add('open');
+  }catch(e){schoolCalStatus.textContent='讀取失敗：'+(e.message||e)}
+  inp.value='';
+}
+function renderSchoolCalPreview(){
+ schoolCalPreview.innerHTML=pendingSchoolCalendar.length?pendingSchoolCalendar.map((r,i)=>`<div class="school-cal-row"><input type="date" value="${r.date}" onchange="pendingSchoolCalendar[${i}].date=this.value"><input class="school-cal-title" value="${String(r.title).replace(/"/g,'&quot;')}" onchange="pendingSchoolCalendar[${i}].title=this.value"><select onchange="pendingSchoolCalendar[${i}].type=this.value"><option ${r.type==='學校活動'?'selected':''}>學校活動</option><option ${r.type==='放假／停課'?'selected':''}>放假／停課</option><option ${r.type==='考試／評量'?'selected':''}>考試／評量</option></select><button class="btn danger" onclick="pendingSchoolCalendar.splice(${i},1);renderSchoolCalPreview()">✕</button></div>`).join(''):'<div class="empty">沒有辨識到日期事件。</div>';
+}
+function confirmSchoolCalendarImport(){
+ if(!pendingSchoolCalendar.length)return alert('沒有可匯入的行事');
+ state.schoolCalendarEvents=state.schoolCalendarEvents||[];
+ state.tasks=state.tasks||[];
+ pendingSchoolCalendar.forEach((r,i)=>{state.schoolCalendarEvents.push({id:Date.now()+i,date:r.date,title:r.title,type:r.type});state.tasks.push({id:Date.now()+10000+i,date:r.date,title:`📅 ${r.title}`,category:'學校行事',done:false})});
+ const n=pendingSchoolCalendar.length;persist();pendingSchoolCalendar=[];closeModal('schoolCalModal');schoolCalStatus.textContent=`✓ 已加入 ${n} 筆學校行事曆`;alert(`已加入 ${n} 筆學校行事曆！`);
+}
 
 async function readPdf(file){
   const data=new Uint8Array(await file.arrayBuffer());
