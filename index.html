@@ -214,12 +214,27 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 <div class="modal" id="callModal"><div class="sheet" style="width:min(760px,100%)">
   <div class="section-title"><h2>📋 複製成電訪紀錄</h2><button class="btn" onclick="closeModal('callModal')">✕</button></div>
   <div class="form">
-    <div class="call-row">
+    <div class="call-check" style="justify-content:space-between;flex-wrap:wrap">
+      <b>孩子姓名</b>
+      <div style="display:flex;gap:8px">
+        <label style="font-weight:600"><input type="radio" name="callNameMode" value="list" checked onchange="switchCallNameMode('list')"> 從學生名單選擇</label>
+        <label style="font-weight:600"><input type="radio" name="callNameMode" value="manual" onchange="switchCallNameMode('manual')"> 手動輸入姓名</label>
+      </div>
+    </div>
+    <div id="callListMode" class="call-row">
       <label>學生
         <select id="callStudentSelect" onchange="callStudentChanged()"></select>
       </label>
       <label>班級
         <input id="callClass" readonly>
+      </label>
+    </div>
+    <div id="callManualMode" class="call-row" style="display:none">
+      <label>孩子姓名
+        <input id="callManualName" placeholder="例如：Amy、王小明（不需要先建學生資料）">
+      </label>
+      <label>班級／備註（選填）
+        <input id="callManualClass" placeholder="例如：體驗生、ES、幼兒園大班">
       </label>
     </div>
 
@@ -737,6 +752,21 @@ function allCallStudents(){
   });
   return out;
 }
+
+function getCallNameMode(){
+  return document.querySelector('input[name="callNameMode"]:checked')?.value||'list';
+}
+function switchCallNameMode(mode){
+  callListMode.style.display=mode==='list'?'grid':'none';
+  callManualMode.style.display=mode==='manual'?'grid':'none';
+  if(mode==='manual'){
+    callStudentSummary.innerHTML='<b>手動輸入模式</b><br><span style="color:var(--muted)">適合體驗生、外部孩子或還沒建立在工作台裡的學生。</span>';
+    callManualName.focus();
+  }else{
+    callStudentChanged();
+  }
+}
+
 function openCallRecord(classId=null,studentIndex=0){
   const all=allCallStudents();
   callStudentSelect.innerHTML=all.map((s,i)=>
@@ -752,9 +782,12 @@ function openCallRecord(classId=null,studentIndex=0){
     currentCallStudentIndex=all[0].index;
     callStudentSelect.value=`${all[0].classId}|${all[0].index}`;
   }
-  callStudentChanged();
+  document.querySelector('input[name="callNameMode"][value="list"]').checked=true;
+  switchCallNameMode('list');
   callSource.value='';
   callResult.value='';
+  callManualName.value='';
+  callManualClass.value='';
   callModal.classList.add('open');
 }
 function getCurrentCallStudent(){
@@ -779,6 +812,14 @@ function callStudentChanged(){
     `${cur.s.school?`<br><span style="color:var(--muted)">學校／班級：${cur.s.school}</span>`:''}`;
 }
 function nextCallStudent(){
+  if(getCallNameMode()==='manual'){
+    callManualName.value='';
+    callManualClass.value='';
+    callSource.value='';
+    callResult.value='';
+    callManualName.focus();
+    return;
+  }
   const opts=[...callStudentSelect.options];
   const i=Math.max(0,callStudentSelect.selectedIndex);
   if(!opts.length)return;
@@ -813,7 +854,10 @@ async function loadCallFile(inp){
   inp.value='';
 }
 function protectTerms(text,cur){
+  const manualName=(typeof callManualName!=='undefined'&&getCallNameMode()==='manual')?callManualName.value.trim():'';
+  const manualClass=(typeof callManualClass!=='undefined'&&getCallNameMode()==='manual')?callManualClass.value.trim():'';
   const terms=[
+    manualName,manualClass,
     cur?.s?.english,cur?.s?.chinese,cur?.c?.code,cur?.c?.name,cur?.c?.teacher,
     'Teacher Ann','Teacher Polly','Polly','PHA','PHB','PHC','1A','2A'
   ].filter(Boolean).sort((a,b)=>b.length-a.length);
@@ -919,12 +963,15 @@ function cleanChunk(s){
     .trim();
 }
 function generateCallRecord(){
-  const cur=getCurrentCallStudent();
-  if(!cur)return alert('請先選學生');
+  const mode=getCallNameMode();
+  const cur=mode==='list'?getCurrentCallStudent():null;
+  if(mode==='list'&&!cur)return alert('請先選學生');
+  const manualName=callManualName.value.trim();
+  if(mode==='manual'&&!manualName)return alert('請輸入孩子姓名');
   const raw=callSource.value.trim();
   if(!raw)return alert('先貼上對話或輸入重點');
   const audience=callAudience.value||'家長';
-  const name=cur.s.english||cur.s.chinese||'孩子';
+  const name=mode==='manual'?manualName:(cur.s.english||cur.s.chinese||'孩子');
   let src=smoothCallText(raw);
   const chunks=splitIdeaChunks(src);
   const parentLines=[], followUps=[], facts=[];
