@@ -158,6 +158,12 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 
 
 .school-cal-row{display:grid;grid-template-columns:145px 1fr 120px 42px;gap:8px;align-items:center;margin:8px 0}.school-cal-row input,.school-cal-row select{width:100%;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}@media(max-width:620px){.school-cal-row{grid-template-columns:1fr 1fr}.school-cal-title{grid-column:1/-1}}
+
+.badge-intro{background:#eef3ff;border-left:3px solid #8aa3d8}
+.badge-trial{background:#eef9ef;border-left:3px solid #8fbd8a}
+
+.badge-briefing{background:#fff1e8;border-left:3px solid #d7a071}
+.badge-festival{background:#fff0f5;border-left:3px solid #d995ad}
 </style>
 <link rel="manifest" href="manifest.webmanifest?v=3"/>
 <meta name="theme-color" content="#FFF2CC"/>
@@ -217,8 +223,21 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 </div>
 
 <div class="modal" id="quickModal"><div class="sheet"><div class="section-title"><h2>新增紀錄</h2><button class="btn" onclick="closeModal('quickModal')">✕</button></div>
-<div class="form"><label>類型<select id="qType" onchange="typeChanged()"><option value="event">行程 / 課程</option><option value="absence">學生請假</option><option value="sub">老師代課</option><option value="task">待辦</option></select></label>
-<label>日期<input id="qDate" type="date"></label><label>標題<input id="qTitle" placeholder="例如：PHC / Emma 請假"></label><label id="timeLabel">時間<input id="qTime" type="time"></label><label>備註<textarea id="qNote" placeholder="進度、補課內容、代課老師等…"></textarea></label></div>
+<div class="form"><label>類型<select id="qType" onchange="typeChanged()">
+<option value="event">行程 / 課程</option>
+<option value="intro">課程介紹</option>
+<option value="trial">試上</option>
+<option value="briefing">說明會</option>
+<option value="festival">節慶活動</option>
+<option value="absence">學生請假</option>
+<option value="sub">老師代課</option>
+<option value="task">待辦</option>
+</select></label>
+<label>日期<input id="qDate" type="date"></label><label>標題<input id="qTitle" placeholder="例如：PHC / Emma 請假"></label><label id="timeLabel">時間<input id="qTime" type="time"></label>
+<label>日期方式<select id="qDateMode" onchange="dateModeChanged()">
+<option value="single">單一天</option><option value="range">一段期間（每天）</option><option value="weekly">每週重複</option>
+</select></label>
+<label id="endDateLabel" style="display:none">結束日期<input id="qEndDate" type="date"></label><label>備註<textarea id="qNote" placeholder="進度、補課內容、代課老師等…"></textarea></label></div>
 <div class="row"><button class="btn" onclick="closeModal('quickModal')">取消</button><button class="btn primary" onclick="saveQuick()">儲存</button></div></div></div>
 
 <div class="modal" id="classModal"><div class="sheet"><div class="section-title"><h2 id="classModalTitle">新增班級</h2><button class="btn" onclick="closeModal('classModal')">✕</button></div>
@@ -430,10 +449,45 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||{
 };
 function persist(){localStorage.setItem(KEY,JSON.stringify(state));render()}
 function go(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));(btn||document.querySelector(`[data-page="${id}"]`))?.classList.add('active');render()}
-function openQuick(type='event',date=today()){qType.value=type;qDate.value=date;qTitle.value='';qTime.value='';qNote.value='';typeChanged();quickModal.classList.add('open')}
+function openQuick(type='event',date=today()){qType.value=type;qDate.value=date;qTitle.value='';qTime.value='';qNote.value='';qDateMode.value='single';qEndDate.value='';typeChanged();dateModeChanged();quickModal.classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
-function typeChanged(){timeLabel.style.display=qType.value==='event'?'block':'none'}
-function saveQuick(){if(!qTitle.value.trim())return alert('請輸入標題');state.records.push({id:Date.now(),type:qType.value,date:qDate.value||today(),time:qTime.value,title:qTitle.value.trim(),note:qNote.value.trim(),done:false});closeModal('quickModal');persist()}
+function typeChanged(){
+  const needsTime=['event','intro','trial'].includes(qType.value);
+  timeLabel.style.display=needsTime?'block':'none';
+  if(qType.value==='intro'){
+    qTitle.placeholder='例如：Riley 媽媽｜PH 課程介紹';
+    qNote.placeholder='家長需求、孩子年齡、想了解的課程、後續追蹤…';
+  }else if(qType.value==='trial'){
+    qTitle.placeholder='例如：Amy｜PHB 試上';
+    qNote.placeholder='試上班級、孩子反應、家長回饋、是否需要追蹤…';
+  }else if(qType.value==='briefing'){
+    qTitle.placeholder='例如：小一新生家長說明會';
+    qNote.placeholder='主題、對象、地點、需準備資料…';
+  }else if(qType.value==='festival'){
+    qTitle.placeholder='例如：Halloween 節慶活動';
+    qNote.placeholder='活動內容、參加班級、服裝／材料、家長通知…';
+  }else{
+    qTitle.placeholder='例如：PHC / Emma 請假';
+    qNote.placeholder='進度、補課內容、代課老師等…';
+  }
+}
+function dateModeChanged(){
+  endDateLabel.style.display=qDateMode.value==='single'?'none':'block';
+  if(qDateMode.value!=='single'&&!qEndDate.value)qEndDate.value=qDate.value;
+}
+function saveQuick(){
+ if(!qTitle.value.trim())return alert('請輸入標題');
+ const start=qDate.value||today(),end=qEndDate.value;let dates=[start];
+ if(qDateMode.value!=='single'){
+   if(!end)return alert('請選結束日期');
+   if(end<start)return alert('結束日期不能早於開始日期');
+   dates=[];let d=new Date(start+'T12:00:00'),e=new Date(end+'T12:00:00');
+   while(d<=e){dates.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+(qDateMode.value==='weekly'?7:1))}
+ }
+ const base=Date.now();
+ dates.forEach((date,i)=>state.records.push({id:base+i,type:qType.value,date,time:qTime.value,title:qTitle.value.trim(),note:qNote.value.trim(),done:false,seriesId:dates.length>1?base:null,dateMode:qDateMode.value}));
+ closeModal('quickModal');persist();
+}
 function delRecord(id){if(confirm('確定要刪除這筆紀錄嗎？')){state.records=state.records.filter(x=>x.id!==id);persist()}}
 function toggleTask(id){let r=state.records.find(x=>x.id===id);if(r){r.done=!r.done;persist()}}
 function saveLog(){state.logs[today()]=workLog.value;localStorage.setItem(KEY,JSON.stringify(state));alert('工作日誌已儲存')}
@@ -1246,7 +1300,7 @@ function deleteCalendarEvent(){
 }
 
 function shiftMonth(n){view=new Date(view.getFullYear(),view.getMonth()+n,1);renderCalendar()}
-function renderCalendar(){monthTitle.textContent=`${view.getFullYear()} 年 ${view.getMonth()+1} 月`;let y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());let html=['日','一','二','三','四','五','六'].map(x=>`<div class="dow">${x}</div>`).join('');for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;let rec=state.records.filter(x=>x.date===ds);html+=`<div class="day ${d.getMonth()!==m?'muted':''} ${ds===today()?'today':''}" onclick="openQuick('event','${ds}')"><b>${d.getDate()}</b>${rec.slice(0,3).map(r=>`<span class="badge" style="cursor:pointer" title="點擊可編輯或刪除" onclick="event.stopPropagation();openCalendarEvent(${r.id})">${r.type==='absence'?'請假 ':r.type==='sub'?'代課 ':r.type==='task'?'✓ ':''}${r.title}</span>`).join('')}</div>`}calendar.innerHTML=html}
+function renderCalendar(){monthTitle.textContent=`${view.getFullYear()} 年 ${view.getMonth()+1} 月`;let y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());let html=['日','一','二','三','四','五','六'].map(x=>`<div class="dow">${x}</div>`).join('');for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;let rec=state.records.filter(x=>x.date===ds);html+=`<div class="day ${d.getMonth()!==m?'muted':''} ${ds===today()?'today':''}" onclick="openQuick('event','${ds}')"><b>${d.getDate()}</b>${rec.slice(0,3).map(r=>`<span class="badge badge-${r.type}" style="cursor:pointer" title="點擊可編輯或刪除" onclick="event.stopPropagation();openCalendarEvent(${r.id})">${r.type==='absence'?'請假 ':r.type==='sub'?'代課 ':r.type==='task'?'✓ ':r.type==='intro'?'介紹 ':r.type==='trial'?'試上 ':r.type==='briefing'?'說明會 ':r.type==='festival'?'節慶 ':''}${r.title}</span>`).join('')}</div>`}calendar.innerHTML=html}
 
 const POLLY_CLASS_DATA=[{"code": "26-PHA-01", "name": "PHA", "status": "on going", "start": "115/09/07", "end": "115/12/30", "schedule": "MWF 16:30~18:45", "teacher": "Ann Nicole Ong", "admin": "Polly", "students": [["王敘恆", "Ryder", "5/13/2021", "雙連"], ["陳泓睿", "Ray", "9/12/2020", "達義"], ["吳季洋", "John", "10/22/2020", "新三玉"], ["莊恩平", "Timmy", "12/3/2020", "雙連"], ["莊恩欣", "Clair", "12/3/2020", "雙連"], ["盧宥呈", "Lucas", "9/29/2020", "雙連"], ["李衍霆", "Eddie", "6/14/2021", "心美"], ["汪子丞", "Vincent", "2/22/2021", "道思"], ["林子軒", "Green", "5/3/2021", "天母附幼"], ["何羿學", "Max", "3/25/2021", "新三玉"], ["何羿蓁", "Emma", "3/25/2021", "新三玉"], ["戴境", "Ethan", "10/8/2020", "優格"], ["厲以澄", "Todd", "8/27/2021", "優格"], ["陳宥衡", "Johan", "4/13/2021", "好來"], ["葉品宸", "Ashley", "5/25/2021", "雙連"], ["黃澄昊", "Hugo", "2/21/2021", "心愛"]]}, {"code": "26-PHB-02", "name": "PHB", "status": "on going", "start": "115/09/30", "end": "116/03/31", "schedule": "MW 16:30~18:45", "teacher": "Kathryn Tanco", "admin": "Polly", "students": [["黃琳恩", "Riley", "12/31/2020", "雙連"], ["吳家辰", "Jasper", "1/5/2021", "熊寶貝"], ["王子熙", "Jayce", "3/31/2021", "心愛"], ["康宸昊", "Jeter", "4/8/2021", "熊寶貝"], ["羅巧羽", "Rosa", "4/2/2021", "熊寶貝"], ["湯芸萱", "Irene", "6/3/2021", "雙連"], ["鄭力晨", "Ethan", "8/8/2021", "心愛"], ["郭贊", "Zan", "8/14/2021", "熊寶貝"], ["呂采盈", "Osa", "9/26/2020", "士東附幼"], ["莊沐芸", "Bella", "11/11/2020", "新三玉"], ["莊沐蓉", "Ella", "11/11/2020", "新三玉"]]}, {"code": "26-PHC-01", "name": "PHC", "status": "on going", "start": "115/09/01", "end": "116/02/25", "schedule": "TR 16:30~18:30", "teacher": "Ann Nicole Ong", "admin": "Polly", "students": [["張言雋", "Jun", "9/19/2020", "熊寶貝"], ["張淑聆", "Minnie", "9/26/2020", "雙連"], ["鍾喬安", "Elsa", "10/14/2020", "新三玉"], ["蒲詠希", "Alice", "10/18/2020", "何嘉仁"], ["吳品誼", "Penny", "10/28/2020", "愛德恩"], ["賴宇喬", "Josh", "11/9/2020", "薇閣附幼"], ["蕭湘霓", "Sunny", "11/25/2020", "何嘉仁"], ["游媛珺", "Joanna", "12/26/2020", "十大"], ["林知謙", "Chien", "1/7/2021", "雙連"], ["李欣蕾", "Doris", "1/10/2021", "雙連"]]}, {"code": "26-1A-01", "name": "1A", "status": "semester", "start": "115/08/31", "end": "116/01/19", "schedule": "MWF 13:30~16:00", "teacher": "Ann Nicole Ong", "admin": "Polly", "students": [["連麒翔", "Tony", "1/13/2020", "天母1-"], ["余瓅", "Lily", "1/14/2020", "天母1-"], ["葛仲亮", "Liang Liang", "4/2/2020", "天母1-"], ["謝雨靚", "Gina", "10/9/2019", "士東1-"], ["何羿萬", "Ethan", "1/10/2020", "天母1-"], ["徐晶晶", "Ginny", "9/28/2019", "天母1-"], ["許恩齊", "Enzi", "3/20/2020", "湖山1-"], ["何訢卉", "Rachel", "3/24/2020", "天母1-"], ["楊晨安", "Rico", "6/22/2020", "天母1-"], ["詹咏致", "Yoyo", "7/1/2020", "天母1-8"], ["黃家萱", "Miffy", "8/29/2020", "天母1-"], ["蘇紫芯", "Esther", "7/31/2017", "天母4-5"], ["陳彩生", "Bulla", "8/17/2020", "天母1-"]]}, {"code": "26-2A-01", "name": "2A", "status": "semester", "start": "115/08/31", "end": "116/01/19", "schedule": "MWF 13:30~16:00", "teacher": "Adriel Setyawan", "admin": "Polly", "students": [["宋繼恩", "Jojo", "12/28/2018", "三玉2-4"], ["趙又澄", "Roy", "2/20/2019", "三玉2-2"], ["詹淽妘", "Momo", "3/6/2019", "天母2-3"], ["陳建辰", "Joshua", "4/19/2019", "士東2-3"], ["吳妡苓", "Callene", "5/7/2019", "雨農2-4"], ["陳知妘", "Mira", "5/8/2019", "明德2-2"], ["林品妍", "Amber", "6/20/2019", "天母2-5"], ["林品學", "Mason", "6/20/2019", "天母2-6"], ["曾郁喬", "Hami", "6/21/2019", "天母2-9"], ["宋品霓", "Olie", "6/25/2019", "士東2-2"], ["曹博安", "Bryant", "8/5/2019", "士東2-3"]]}, {"code": "26-2A-02", "name": "2A", "status": "on going", "start": "115/09/01", "end": "116/02/25", "schedule": "TR 16:45-19:00", "teacher": "Adriel Setyawan", "admin": "Polly", "students": [["李安", "Finn", "10/7/2016", "福林4-"], ["黃德睿", "Ray", "9/11/2018", "雨聲2-甲"], ["黃俞涵", "Dolly", "10/21/2018", "薇閣2-"], ["陳宣妤", "Clara", "1/5/2019", "華興2"], ["賴澄妍", "Patty", "6/17/2019", "薇閣2-"], ["魏于翔", "Shawn", "1/12/2015", "三玉6-2"], ["柯昕皓", "Howard", "1/5/2019", "天母2-9"], ["黃宥衡", "Ryder", "6/16/2019", "薇閣2-"], ["陳禹築", "Joy", "1/12/2015", "三玉6-"]]}];
 
@@ -1320,14 +1374,14 @@ function render(){
   const t=today();
   todayDate.textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
   const tr=state.records.filter(x=>x.date===t);
-  const events=tr.filter(x=>x.type==='event');
+  const events=tr.filter(x=>['event','intro','trial','briefing','festival'].includes(x.type));
   const abs=tr.filter(x=>x.type==='absence');
   const tasks=state.records.filter(x=>x.type==='task'&&!x.done);
   courseCount.textContent=events.length;
   absenceCount.textContent=abs.length;
   todoCount.textContent=tasks.length;
 
-  todayEvents.innerHTML=events.length?events.map(r=>`<div class="event"><div class="time">${r.time||'—'}</div><div class="grow"><b>${r.title}</b><br><small>${r.note||''}</small></div><button class="btn danger" onclick="delRecord(${r.id})">刪除</button></div>`).join(''):'<div class="empty">今天還沒有課程紀錄</div>';
+  todayEvents.innerHTML=events.length?events.map(r=>`<div class="event"><div class="time">${r.time||'—'}</div><div class="grow"><b>${r.type==='intro'?'📘 課程介紹｜':r.type==='trial'?'🌱 試上｜':r.type==='briefing'?'📣 說明會｜':r.type==='festival'?'🎉 節慶活動｜':''}${r.title}</b><br><small>${r.note||''}</small></div><button class="btn danger" onclick="delRecord(${r.id})">刪除</button></div>`).join(''):'<div class="empty">今天還沒有課程紀錄</div>';
 
   todayTasks.innerHTML=tasks.slice(0,6).map(r=>`<div class="task ${r.done?'done':''}"><input type="checkbox" ${r.done?'checked':''} onchange="toggleTask(${r.id})"><span class="grow">${r.title}<small style="display:block;color:var(--muted)">${r.date}</small></span><button class="btn danger" onclick="delRecord(${r.id})">刪</button></div>`).join('')||'<div class="empty">沒有待辦 🎉</div>';
 
