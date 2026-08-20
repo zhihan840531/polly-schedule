@@ -11,11 +11,14 @@
     const s=document.createElement('style');
     s.id='pollyWorkspaceFixStyles';
     s.textContent=`
-      /* iOS Safari/PWA can give native date/time controls an intrinsic width that overflows the form. */
-      #quickModal .form > label,
+      /* Keep every quick-entry field the same full width and shape on iPhone/iPad. */
+      #quickModal .form{width:100%;min-width:0 !important;}
+      #quickModal .form > label{display:block;width:100%;min-width:0 !important;box-sizing:border-box !important;}
       #quickModal .form > label input,
       #quickModal .form > label select,
       #quickModal .form > label textarea{
+        display:block !important;
+        width:100% !important;
         min-width:0 !important;
         max-width:100% !important;
         box-sizing:border-box !important;
@@ -25,26 +28,35 @@
       #quickModal #qDate,
       #quickModal #qTime,
       #quickModal #qEndDate{
+        -webkit-appearance:none !important;
+        appearance:none !important;
         display:block !important;
         width:100% !important;
         min-width:0 !important;
         max-width:100% !important;
-        height:46px !important;
+        height:auto !important;
+        min-height:46px !important;
+        padding:10px !important;
+        margin:0 !important;
+        border:1px solid var(--line,#ece6d7) !important;
+        border-radius:10px !important;
+        background:#fff !important;
+        font:inherit !important;
+        color:var(--ink,#3f3b32) !important;
         box-sizing:border-box !important;
+        text-align:left !important;
       }
-      #quickModal .form{min-width:0 !important;overflow:hidden}
-      #quickModal .sheet{overflow-x:hidden !important}
-      @media(max-width:620px){
-        #quickModal input[type="date"],
-        #quickModal input[type="time"],
-        #quickModal #qDate,
-        #quickModal #qTime,
-        #quickModal #qEndDate{
-          width:100% !important;
-          min-width:100% !important;
-          max-width:100% !important;
-        }
+      #quickModal input[type="date"]::-webkit-date-and-time-value,
+      #quickModal input[type="time"]::-webkit-date-and-time-value{
+        text-align:left !important;
+        min-height:24px;
+        line-height:24px;
       }
+      #quickModal input[type="date"]::-webkit-calendar-picker-indicator,
+      #quickModal input[type="time"]::-webkit-calendar-picker-indicator{
+        margin:0 0 0 auto;
+      }
+      #quickModal .sheet{overflow-x:visible !important;}
     `;
     document.head.appendChild(s);
   }
