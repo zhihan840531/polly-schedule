@@ -1,0 +1,24 @@
+(() => {
+'use strict';
+const URL='https://ttfamytleguygqbwqmat.supabase.co';
+const KEY='sb_publishable_xxFZSy912kCrw1lAlmY16g_wV8Zb9KS';
+const WORK='polly-workspace-v1';
+const ADMIT_KEYS=['polly-admissions-v1','polly-admissions'];
+let client=null,user=null,timer=null,applying=false,lastSaved='';
+const el=(id)=>document.getElementById(id);
+function admissions(){for(const k of ADMIT_KEYS){const v=localStorage.getItem(k);if(v){try{return {key:k,data:JSON.parse(v)}}catch(e){}}}return {key:ADMIT_KEYS[0],data:[]}}
+function workspace(){try{return JSON.parse(localStorage.getItem(WORK)||'null')||{}}catch(e){return {}}}
+function snapshot(){const a=admissions();return {workspace:workspace(),admissions:a.data}}
+function hasUseful(s){return (s?.workspace?.records?.length||0)+(s?.workspace?.classes?.length||0)+(Array.isArray(s?.admissions)?s.admissions.length:0)>0}
+function inject(){if(el('pollyCloudBar'))return;const d=document.createElement('div');d.id='pollyCloudBar';d.style.cssText='position:fixed;right:12px;bottom:78px;z-index:90;background:#fff;border:1px solid #ece6d7;border-radius:14px;padding:9px 11px;box-shadow:0 6px 24px #0002;font:12px system-ui;max-width:260px';d.innerHTML='<div style="font-weight:800">☁️ 雲端同步</div><div id="pollyCloudStatus" style="margin-top:3px;color:#817b6e">準備中…</div><div id="pollyCloudActions" style="margin-top:7px"></div>';document.body.appendChild(d)}
+function status(t){if(el('pollyCloudStatus'))el('pollyCloudStatus').textContent=t}
+function actions(html){if(el('pollyCloudActions'))el('pollyCloudActions').innerHTML=html}
+async function login(){const email=prompt('請輸入你要用來同步工作台的 Email：');if(!email)return;status('正在寄登入連結…');const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:'https://zhihan840531.github.io/polly-schedule/'}});if(error){status('登入失敗：'+error.message);return}alert('登入連結已寄到 '+email+'，請到信箱點開。');status('請到 Email 點登入連結')}
+async function logout(){await client.auth.signOut();location.reload()}
+async function pullOrSeed(){if(!user)return;status('正在比對雲端資料…');const {data,error}=await client.from('polly_cloud_state').select('workspace,admissions,updated_at').eq('user_id',user.id).maybeSingle();if(error){status('讀取失敗：'+error.message);return}const local=snapshot();if(!data){if(hasUseful(local)){await push(true);status('✓ 已把這台裝置資料建立為第一份雲端資料')}else status('雲端尚無資料');return}const cloud={workspace:data.workspace||{},admissions:data.admissions||[]};if(!hasUseful(cloud)&&hasUseful(local)){await push(true);return}applying=true;localStorage.setItem(WORK,JSON.stringify(cloud.workspace));const a=admissions();localStorage.setItem(a.key,JSON.stringify(cloud.admissions));applying=false;lastSaved=JSON.stringify(snapshot());status('✓ 已從雲端同步 · '+new Date(data.updated_at).toLocaleString());setTimeout(()=>location.reload(),350)}
+async function push(force=false){if(!user||applying)return;const s=snapshot(),str=JSON.stringify(s);if(!force&&str===lastSaved)return;status('同步中…');const {error}=await client.from('polly_cloud_state').upsert({user_id:user.id,workspace:s.workspace,admissions:s.admissions},{onConflict:'user_id'});if(error){status('同步失敗：'+error.message);return}lastSaved=str;status('✓ 已同步 '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))}
+function watch(){clearInterval(timer);lastSaved=JSON.stringify(snapshot());timer=setInterval(()=>push(false),2500);window.addEventListener('pagehide',()=>push(false));}
+async function initClient(){inject();if(!window.supabase){status('雲端元件載入失敗');return}client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data}=await client.auth.getSession();user=data.session?.user||null;client.auth.onAuthStateChange((event,session)=>{const next=session?.user||null;if(!user&&next){user=next;actions('<button class="btn" id="pollyCloudLogout">登出</button>');setTimeout(pullOrSeed,0)}else user=next});if(!user){status('尚未登入；登入後手機與電腦會共用資料');actions('<button class="btn primary" id="pollyCloudLogin">登入同步</button>');el('pollyCloudLogin').onclick=login;return}status('已登入 '+(user.email||''));actions('<button class="btn" id="pollyCloudNow">立即同步</button> <button class="btn" id="pollyCloudLogout">登出</button>');el('pollyCloudNow').onclick=()=>push(true);el('pollyCloudLogout').onclick=logout;await pullOrSeed();watch()}
+function boot(){const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.onload=initClient;s.onerror=()=>{inject();status('無法載入 Supabase')};document.head.appendChild(s)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
