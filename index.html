@@ -16,7 +16,7 @@ main{max-width:1080px;margin:auto;padding:24px}.hello h1{margin:0;font-size:28px
 .event{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:12px}.event:last-child{border:0}.time{font-weight:800;min-width:54px}.event small{color:var(--muted)}
 .task{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.task:last-child{border:0}.task.done span{text-decoration:line-through;color:#aaa}.grow{flex:1}
 textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:12px;padding:12px;resize:vertical}
-.nav{position:fixed;bottom:0;left:0;right:0;height:72px;background:var(--yellow);border-top:1px solid #eadcae;display:flex;justify-content:center;z-index:20}.nav-inner{width:min(760px,100%);display:grid;grid-template-columns:repeat(5,1fr)}
+.nav{position:fixed;bottom:0;left:0;right:0;height:72px;background:var(--yellow);border-top:1px solid #eadcae;display:flex;justify-content:center;z-index:20}.nav-inner{width:min(760px,100%);display:grid;grid-template-columns:repeat(6,1fr)}
 .nav button{border:0;background:transparent;cursor:pointer;color:#706957;font-size:12px;font-weight:650}.nav button.active{color:#332e23}.nav img{display:block;width:30px;height:30px;object-fit:contain;margin:0 auto 2px}
 .page{display:none}.page.active{display:block}
 .calendar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.calendar{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:18px;overflow:hidden;background:white}.dow{background:#fff9e7;text-align:center;padding:10px 2px;font-size:12px;font-weight:800}.day{min-height:108px;border-top:1px solid var(--line);border-right:1px solid var(--line);padding:8px;cursor:pointer}.day:nth-child(7n){border-right:0}.day.muted{color:#bbb}.day.today{background:#fff9df}.badge{display:block;margin-top:5px;padding:4px 6px;border-radius:7px;background:#f7efd7;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -164,6 +164,58 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 
 .badge-briefing{background:#fff1e8;border-left:3px solid #d7a071}
 .badge-festival{background:#fff0f5;border-left:3px solid #d995ad}
+
+/* 招生 CRM */
+.admission-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0}
+.admission-toolbar input,.admission-toolbar select{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.admission-toolbar input{flex:1;min-width:220px}
+.admission-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.admission-card{background:#fff;border:1px solid var(--line);border-left:6px solid #c7c1b2;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(80,65,20,.04)}
+.admission-card.priority-red{border-left-color:#d95d53}
+.admission-card.priority-orange{border-left-color:#e59b47}
+.admission-card.priority-yellow{border-left-color:#dec24d}
+.admission-card.priority-green{border-left-color:#76a66b}
+.admission-card.priority-blue{border-left-color:#6d91c7}
+.admission-top{display:flex;justify-content:space-between;gap:10px}
+.admission-meta{font-size:13px;color:var(--muted);line-height:1.7;margin-top:8px}
+.admission-need{margin-top:10px;padding:10px;background:#fffaf0;border-radius:10px;white-space:pre-wrap}
+.status-chip{display:inline-block;border-radius:999px;padding:4px 8px;background:#f4edd8;font-size:11px}
+.priority-chip{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;background:#f3f3f3}
+
+/* 學生記事狀態 */
+.note-priority-red{border-left:6px solid #d95d53}
+.note-priority-orange{border-left:6px solid #e59b47}
+.note-priority-yellow{border-left:6px solid #dec24d}
+.note-priority-green{border-left:6px solid #76a66b}
+.note-priority-blue{border-left:6px solid #6d91c7}
+.note-posted{opacity:.68}
+.note-status-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.note-posted-label{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:#f4f1e8;border-radius:999px;padding:5px 8px}
+
+/* 電訪學生搜尋 */
+.call-student-search{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.call-student-search .full{grid-column:1/-1}
+@media(max-width:820px){
+  .admission-grid{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .nav-inner{grid-template-columns:repeat(6,1fr);width:100%}
+  .nav button{font-size:10px}
+  .nav .emoji-nav{font-size:25px;line-height:30px;display:block;margin:0 auto 2px}
+  .call-student-search{grid-template-columns:1fr}
+  .call-student-search .full{grid-column:auto}
+}
+
+
+.queue-item{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+.queue-item:last-child{border-bottom:0}
+.queue-dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:0 0 10px;background:#999}
+.queue-dot.red{background:#d95d53}.queue-dot.orange{background:#e59b47}.queue-dot.yellow{background:#dec24d}.queue-dot.green{background:#76a66b}.queue-dot.blue{background:#6d91c7}
+.queue-main{flex:1;min-width:0}.queue-main b{display:block}.queue-main small{color:var(--muted)}
+.global-search-wrap{position:relative;margin:12px 0}
+.global-results{position:absolute;left:0;right:0;top:46px;z-index:50;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-height:360px;overflow:auto}
+.global-result{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}.global-result:hover{background:#fffaf0}.global-result:last-child{border-bottom:0}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest?v=3"/>
 <meta name="theme-color" content="#FFF2CC"/>
@@ -176,14 +228,30 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=5">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="brand"><img src="app-icon.png?v=5"><span>Polly 工作台</span></div><div class="top-actions"><button class="btn primary" onclick="openCallRecord()">📋 電訪紀錄</button></div></header>
+<header class="top"><div class="brand"><img src="app-icon.png?v=5"><span>Polly 工作台</span></div><div class="top-actions"><span id="syncBadge" style="align-self:center;font-size:12px;color:var(--muted)">同步中…</span><button class="btn primary" onclick="openCallRecord()">📋 電訪紀錄</button></div></header>
 <main>
+
+<div class="global-search-wrap">
+  <input id="globalSearch" style="width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:14px;background:#fff" placeholder="🔎 搜尋學生、招生、記事、電訪內容…" oninput="runGlobalSearch()">
+  <div id="globalSearchResults" class="global-results" style="display:none"></div>
+</div>
+
 <section id="today" class="page active">
 <div class="hello"><h1>今天</h1><p id="todayDate"></p></div>
 <div class="stats"><div class="stat"><b id="courseCount">0</b><span>今日課程</span></div><div class="stat"><b id="absenceCount">0</b><span>學生請假</span></div><div class="stat"><b id="todoCount">0</b><span>未完成待辦</span></div></div>
+
+<div class="card" style="margin-top:14px">
+  <div class="section-title">
+    <div><h2>🔥 今日待處理</h2><small style="color:var(--muted)">把重要學生、未貼智光、招生追蹤集中在這裡</small></div>
+    <span class="badge" id="smartQueueCount">0 件</span>
+  </div>
+  <div id="smartQueue"></div>
+</div>
+
 <div class="grid">
 <div><div class="card"><div class="section-title"><h2>今日時間軸</h2><button class="btn" onclick="openQuick('event')">＋ 行程</button></div><div id="todayEvents"></div></div>
 <div class="card" style="margin-top:16px"><div class="section-title"><h2>工作日誌</h2><button class="btn primary" onclick="saveLog()">儲存</button></div><textarea id="workLog" placeholder="今天發生什麼？家長聯繫、教材、班級狀況都可以記在這裡…"></textarea></div></div>
@@ -206,6 +274,32 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 
 <section id="work" class="page"><div class="section-title"><div><h1 style="margin:0">工作</h1><small style="color:var(--muted)">待辦、補課與代課紀錄</small></div><button class="btn primary" onclick="openQuick('task')">＋ 新增</button></div><div class="card"><div id="allTasks"></div></div></section>
 
+
+<section id="admissions" class="page">
+  <div class="section-title">
+    <div><h1 style="margin:0">招生</h1><small style="color:var(--muted)">記錄家長需求、體驗／試上與後續追蹤</small></div>
+    <button class="btn primary" onclick="openAdmission()">＋ 新增招生</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="admissionOpenCount">0</b><span>進行中</span></div>
+    <div class="stat"><b id="admissionFollowCount">0</b><span>待追蹤</span></div>
+    <div class="stat"><b id="admissionEnrolledCount">0</b><span>已報名</span></div>
+  </div>
+  <div class="admission-toolbar">
+    <input id="admissionSearch" placeholder="搜尋孩子、家長、學校、需求…" oninput="renderAdmissions()">
+    <select id="admissionStatusFilter" onchange="renderAdmissions()">
+      <option value="">全部狀態</option>
+      <option value="new">新詢問</option>
+      <option value="contacted">已聯繫</option>
+      <option value="trial">試上／測試</option>
+      <option value="follow">待追蹤</option>
+      <option value="enrolled">已報名</option>
+      <option value="lost">未成交</option>
+    </select>
+  </div>
+  <div id="admissionList" class="admission-grid"></div>
+</section>
+
 <section id="data" class="page"><div class="section-title"><div><h1 style="margin:0">資料區</h1><small style="color:var(--muted)">公司資料與 AI 匯入入口</small></div></div><div class="data-grid">
 <div class="upload"><img src="icon-plan.png"><h3>AI 匯入</h3><p>一次選「點名表 PDF + Syllabus PDF」<br>系統會自動辨識並配對</p><input id="aiFiles" type="file" accept="application/pdf,.pdf" multiple onchange="startAIImport(this)"><div id="aiStatus" style="margin-top:10px;color:var(--muted);font-size:13px"></div></div>
 <div class="upload"><div style="font-size:40px;margin-bottom:8px">📅</div><h3>學校行事曆</h3><p>上傳 PDF、Excel 或 CSV<br>辨識日期與學校活動後加入工作台</p><input id="schoolCalFile" type="file" accept=".pdf,.xlsx,.xls,.csv,application/pdf" onchange="startSchoolCalendarImport(this)"><div id="schoolCalStatus" style="margin-top:10px;color:var(--muted);font-size:13px"></div></div>
@@ -218,9 +312,75 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
 <button data-page="calendarPage" onclick="go('calendarPage',this)"><img src="icon-calendar.png">行事曆</button>
 <button data-page="classes" onclick="go('classes',this)"><img src="icon-class.png">班級</button>
 <button data-page="work" onclick="go('work',this)"><img src="icon-todo.png">工作</button>
+<button data-page="admissions" onclick="go('admissions',this)"><span class="emoji-nav">🎯</span>招生</button>
 <button data-page="data" onclick="go('data',this)"><img src="icon-plan.png">資料</button>
 </div></nav>
 </div>
+
+
+<div class="modal" id="admissionModal"><div class="sheet" style="width:min(620px,100%)">
+  <div class="section-title"><h2 id="admissionModalTitle">🎯 新增招生紀錄</h2><button class="btn" onclick="closeModal('admissionModal')">✕</button></div>
+  <div class="form">
+    <input id="admissionId" type="hidden">
+    <div class="call-row">
+      <label>孩子姓名<input id="admissionChild" placeholder="例如 Amy"></label>
+      <label>家長／聯絡人<input id="admissionParent" placeholder="例如 Amy媽媽"></label>
+    </div>
+    <div class="call-row">
+      <label>年齡／年級<input id="admissionGrade" placeholder="例如 大班／小一"></label>
+      <label>學校<input id="admissionSchool" placeholder="例如 天母國小"></label>
+    </div>
+    <div class="call-row">
+      <label>想了解的課程<input id="admissionCourse" placeholder="例如 自然發音／1A"></label>
+      <label>希望時段<input id="admissionTime" placeholder="例如 二四晚上"></label>
+    </div>
+    <div class="call-row">
+      <label>來源
+        <select id="admissionSource">
+          <option>LINE</option><option>電話</option><option>路過／現場</option><option>家長介紹</option><option>Facebook</option><option>其他</option>
+        </select>
+      </label>
+      <label>狀態
+        <select id="admissionStatus">
+          <option value="new">新詢問</option>
+          <option value="contacted">已聯繫</option>
+          <option value="trial">試上／測試</option>
+          <option value="follow">待追蹤</option>
+          <option value="enrolled">已報名</option>
+          <option value="lost">未成交</option>
+        </select>
+      </label>
+    </div>
+    <div class="call-row">
+      <label>重要程度
+        <select id="admissionPriority">
+          <option value="blue">🔵 一般資訊</option>
+          <option value="green" selected>🟢 一般追蹤</option>
+          <option value="yellow">🟡 需要留意</option>
+          <option value="orange">🟠 重要</option>
+          <option value="red">🔴 極重要</option>
+        </select>
+      </label>
+      <label>下次追蹤<input id="admissionFollowDate" type="date"></label>
+      <label>下一步
+        <select id="admissionNextAction">
+          <option value="">尚未設定</option>
+          <option>傳課表／費用</option>
+          <option>約測試</option>
+          <option>約試上</option>
+          <option>等家長回覆</option>
+          <option>追蹤報名</option>
+          <option>其他</option>
+        </select>
+      </label>
+    </div>
+    <label>家長需求／招生筆記<textarea id="admissionNeed" placeholder="例如：媽媽希望找二四晚上課程，孩子比較害羞、之前沒有補英文，希望先安排15–20分鐘體驗…"></textarea></label>
+  </div>
+  <div class="row" style="justify-content:space-between;flex-wrap:wrap">
+    <button id="deleteAdmissionBtn" class="btn danger" style="display:none" onclick="deleteAdmission()">刪除</button>
+    <div style="display:flex;gap:8px"><button class="btn" onclick="closeModal('admissionModal')">取消</button><button class="btn primary" onclick="saveAdmission()">儲存</button></div>
+  </div>
+</div></div>
 
 <div class="modal" id="quickModal"><div class="sheet"><div class="section-title"><h2>新增紀錄</h2><button class="btn" onclick="closeModal('quickModal')">✕</button></div>
 <div class="form"><label>類型<select id="qType" onchange="typeChanged()">
@@ -313,6 +473,15 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
           <option value="其他">其他</option>
         </select>
       </label>
+      <label>重要程度
+        <select id="studentNotePriority">
+          <option value="blue">🔵 一般資訊</option>
+          <option value="green" selected>🟢 一般</option>
+          <option value="yellow">🟡 需要留意</option>
+          <option value="orange">🟠 重要</option>
+          <option value="red">🔴 極重要</option>
+        </select>
+      </label>
     </div>
     <label>快速記事
       <textarea id="studentNoteText" placeholder="想到什麼就打什麼：LINE內容、媽媽說什麼、老師觀察、孩子今天發生什麼、要追蹤的事情……不用整理，也不用怕打錯字。"></textarea>
@@ -324,8 +493,11 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
     </div>
   </div>
 
-  <div class="section-title" style="margin-top:20px">
-    <h2 style="font-size:17px">歷史記事</h2>
+  <div class="section-title" style="margin-top:20px;gap:8px;flex-wrap:wrap">
+    <div>
+      <h2 style="font-size:17px">歷史記事</h2>
+      <label style="font-size:12px;color:var(--muted)"><input id="hidePostedNotes" type="checkbox" onchange="renderStudentNotes()"> 只看尚未貼到智光</label>
+    </div>
     <button class="btn primary" onclick="notesToCallRecord()">✨ 整理成電訪紀錄</button>
   </div>
   <div id="studentNotesList"></div>
@@ -341,12 +513,15 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
         <label style="font-weight:600"><input type="radio" name="callNameMode" value="manual" onchange="switchCallNameMode('manual')"> 手動輸入姓名</label>
       </div>
     </div>
-    <div id="callListMode" class="call-row">
-      <label>學生
-        <select id="callStudentSelect" onchange="callStudentChanged()"></select>
+    <div id="callListMode" class="call-student-search">
+      <label>先選班級
+        <select id="callClassFilter" onchange="refreshCallStudentOptions()"></select>
       </label>
-      <label>班級
-        <input id="callClass" readonly>
+      <label>搜尋學生
+        <input id="callStudentSearch" placeholder="中文名／英文名／學校" oninput="refreshCallStudentOptions()">
+      </label>
+      <label class="full">再選學生
+        <select id="callStudentSelect" onchange="callStudentChanged()"></select>
       </label>
     </div>
     <div id="callManualMode" class="call-row" style="display:none">
@@ -425,6 +600,7 @@ textarea{width:100%;min-height:105px;border:1px solid var(--line);border-radius:
       <button class="btn" onclick="nextCallStudent()">下一位 →</button>
       <div style="display:flex;gap:8px">
         <button class="btn" onclick="copyCallResult()">複製結果</button>
+<button class="btn primary" onclick="saveCallAsPosted()">✓ 已貼智光並回存</button>
         <button class="btn primary" onclick="copyAndCloseCall()">複製並關閉</button>
       </div>
     </div>
@@ -447,7 +623,43 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||{
  classes:[{id:1,code:'PHC-01',name:'PHC',teacher:'Ann',schedule:'一三五 13:30–16:00',students:['Emma','Alston','Quinne','Glenn']}],
  logs:{}
 };
-function persist(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+// ── 手機／電腦跨裝置同步（Supabase）──
+const SUPA_URL='https://ttfamytleguygqbwqmat.supabase.co';
+const SUPA_ANON_KEY='sb_publishable_xxFZSy912kCrw1lAlmY16g_wV8Zb9KS';
+const SUPA_ROW_ID='polly-main';
+const supa=window.supabase.createClient(SUPA_URL,SUPA_ANON_KEY);
+let syncTimer=null;
+function setSyncBadge(text){const el=document.getElementById('syncBadge');if(el)el.textContent=text}
+function saveState(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  setSyncBadge('儲存中…');
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(pushToSupabase,600);
+}
+async function pushToSupabase(){
+  try{
+    const {error}=await supa.from('workspace_state').upsert({id:SUPA_ROW_ID,data:state,updated_at:new Date().toISOString()});
+    setSyncBadge(error?'同步失敗':'已同步 ✓');
+    if(error)console.error(error);
+  }catch(e){console.error(e);setSyncBadge('同步失敗（離線）')}
+}
+async function pullFromSupabase(){
+  try{
+    setSyncBadge('同步中…');
+    const {data,error}=await supa.from('workspace_state').select('data,updated_at').eq('id',SUPA_ROW_ID).maybeSingle();
+    if(error){console.error(error);setSyncBadge('離線，使用本機資料');return}
+    if(data&&data.data){
+      state=data.data;
+      localStorage.setItem(KEY,JSON.stringify(state));
+      ensurePollyClasses();
+      render();
+      setSyncBadge('已同步 ✓');
+    }else{
+      await pushToSupabase();
+    }
+  }catch(e){console.error(e);setSyncBadge('離線，使用本機資料')}
+}
+function persist(){saveState();render()}
 function go(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));(btn||document.querySelector(`[data-page="${id}"]`))?.classList.add('active');render()}
 function openQuick(type='event',date=today()){qType.value=type;qDate.value=date;qTitle.value='';qTime.value='';qNote.value='';qDateMode.value='single';qEndDate.value='';typeChanged();dateModeChanged();quickModal.classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
@@ -490,10 +702,92 @@ function saveQuick(){
 }
 function delRecord(id){if(confirm('確定要刪除這筆紀錄嗎？')){state.records=state.records.filter(x=>x.id!==id);persist()}}
 function toggleTask(id){let r=state.records.find(x=>x.id===id);if(r){r.done=!r.done;persist()}}
-function saveLog(){state.logs[today()]=workLog.value;localStorage.setItem(KEY,JSON.stringify(state));alert('工作日誌已儲存')}
+function saveLog(){state.logs[today()]=workLog.value;saveState();alert('工作日誌已儲存')}
 function openClass(id){let c=state.classes.find(x=>x.id===id);editClassId.value=c?.id||'';classCode.value=c?.code||'';className.value=c?.name||'';classTeacher.value=c?.teacher||'';classSchedule.value=c?.schedule||'';classStudents.value=(c?.students||[]).join(', ');classModalTitle.textContent=c?'編輯班級':'新增班級';classModal.classList.add('open')}
 function saveClass(){if(!classCode.value.trim()||!className.value.trim())return alert('請填班級代碼與名稱');let obj={id:+editClassId.value||Date.now(),code:classCode.value.trim(),name:className.value.trim(),teacher:classTeacher.value.trim(),schedule:classSchedule.value.trim(),students:classStudents.value.split(/[,，]/).map(x=>x.trim()).filter(Boolean)};let idx=state.classes.findIndex(x=>x.id===obj.id);if(idx>=0)state.classes[idx]=obj;else state.classes.push(obj);closeModal('classModal');persist()}
 function delClass(id){if(confirm('確定刪除這個班級嗎？此版本只刪班級基本資料，不會刪除既有行事曆紀錄。')){state.classes=state.classes.filter(x=>x.id!==id);persist()}}
+
+
+const ADMISSION_STATUS_LABEL={new:'新詢問',contacted:'已聯繫',trial:'試上／測試',follow:'待追蹤',enrolled:'已報名',lost:'未成交'};
+const PRIORITY_LABEL={blue:'一般資訊',green:'一般追蹤',yellow:'需要留意',orange:'重要',red:'極重要'};
+function ensureAdmissions(){if(!state.admissions)state.admissions=[]}
+function openAdmission(id=null){
+  ensureAdmissions();
+  const a=id?state.admissions.find(x=>x.id===id):null;
+  admissionId.value=a?.id||'';
+  admissionChild.value=a?.child||'';
+  admissionParent.value=a?.parent||'';
+  admissionGrade.value=a?.grade||'';
+  admissionSchool.value=a?.school||'';
+  admissionCourse.value=a?.course||'';
+  admissionTime.value=a?.time||'';
+  admissionSource.value=a?.source||'LINE';
+  admissionStatus.value=a?.status||'new';
+  admissionPriority.value=a?.priority||'green';
+  admissionFollowDate.value=a?.followDate||'';
+  admissionNextAction.value=a?.nextAction||'';
+  admissionNeed.value=a?.need||'';
+  admissionModalTitle.textContent=a?'🎯 編輯招生紀錄':'🎯 新增招生紀錄';
+  deleteAdmissionBtn.style.display=a?'inline-block':'none';
+  admissionModal.classList.add('open');
+}
+function saveAdmission(){
+  ensureAdmissions();
+  if(!admissionChild.value.trim())return alert('請輸入孩子姓名');
+  const obj={
+    id:+admissionId.value||Date.now(),
+    child:admissionChild.value.trim(),parent:admissionParent.value.trim(),
+    grade:admissionGrade.value.trim(),school:admissionSchool.value.trim(),
+    course:admissionCourse.value.trim(),time:admissionTime.value.trim(),
+    source:admissionSource.value,status:admissionStatus.value,
+    priority:admissionPriority.value,followDate:admissionFollowDate.value,
+    need:admissionNeed.value.trim(),nextAction:admissionNextAction.value,updatedAt:Date.now()
+  };
+  const i=state.admissions.findIndex(x=>x.id===obj.id);
+  if(i>=0)state.admissions[i]=obj;else state.admissions.push(obj);
+  closeModal('admissionModal');persist();renderAdmissions();
+}
+function deleteAdmission(){
+  const id=+admissionId.value;if(!id)return;
+  const a=state.admissions.find(x=>x.id===id);
+  if(!confirm(`確定刪除 ${a?.child||'這筆招生紀錄'} 嗎？`))return;
+  state.admissions=state.admissions.filter(x=>x.id!==id);
+  closeModal('admissionModal');persist();renderAdmissions();
+}
+function renderAdmissions(){
+  ensureAdmissions();
+  const q=(document.getElementById('admissionSearch')?.value||'').trim().toLowerCase();
+  const status=document.getElementById('admissionStatusFilter')?.value||'';
+  const list=state.admissions.filter(a=>{
+    const hay=[a.child,a.parent,a.grade,a.school,a.course,a.time,a.source,a.need].join(' ').toLowerCase();
+    return (!q||hay.includes(q))&&(!status||a.status===status);
+  }).sort((a,b)=>{
+    const order={red:5,orange:4,yellow:3,green:2,blue:1};
+    return (order[b.priority]||0)-(order[a.priority]||0)||String(a.followDate||'9999').localeCompare(String(b.followDate||'9999'));
+  });
+  admissionList.innerHTML=list.length?list.map(a=>`
+    <div class="admission-card priority-${a.priority||'green'}">
+      <div class="admission-top">
+        <div><h3 style="margin:0">${escapeHtml(a.child)}</h3><div style="margin-top:5px"><span class="status-chip">${ADMISSION_STATUS_LABEL[a.status]||a.status}</span> <span class="priority-chip">${PRIORITY_LABEL[a.priority]||''}</span></div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" onclick="openAdmission(${a.id})">編輯</button>${a.status==='enrolled'?`<button class="btn primary" onclick="convertAdmissionToStudent(${a.id})">轉正式學生</button>`:''}</div>
+      </div>
+      <div class="admission-meta">
+        ${a.parent?`家長：${escapeHtml(a.parent)}<br>`:''}
+        ${a.school||a.grade?`學校／年級：${escapeHtml([a.school,a.grade].filter(Boolean).join(' · '))}<br>`:''}
+        ${a.course?`需求課程：<b>${escapeHtml(a.course)}</b><br>`:''}
+        ${a.time?`希望時段：${escapeHtml(a.time)}<br>`:''}
+        ${a.followDate?`下次追蹤：<b>${a.followDate}</b><br>`:''}${a.nextAction?`下一步：<b>${escapeHtml(a.nextAction)}</b><br>`:''}
+        來源：${escapeHtml(a.source||'—')}
+      </div>
+      ${a.need?`<div class="admission-need">${escapeHtml(a.need)}</div>`:''}
+    </div>`).join(''):'<div class="empty">目前沒有符合的招生紀錄</div>';
+  const open=state.admissions.filter(a=>!['enrolled','lost'].includes(a.status)).length;
+  const follow=state.admissions.filter(a=>a.status==='follow'||(a.followDate&&a.followDate<=today()&&!['enrolled','lost'].includes(a.status))).length;
+  const enrolled=state.admissions.filter(a=>a.status==='enrolled').length;
+  if(document.getElementById('admissionOpenCount'))admissionOpenCount.textContent=open;
+  if(document.getElementById('admissionFollowCount'))admissionFollowCount.textContent=follow;
+  if(document.getElementById('admissionEnrolledCount'))admissionEnrolledCount.textContent=enrolled;
+}
 
 let pendingImport=null;
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
@@ -881,18 +1175,25 @@ function renderStudentNotes(){
   ensureStudentNotes();
   const cur=notebookStudent(); if(!cur)return;
   const key=studentNoteKey(cur.c,cur.s);
-  const notes=state.studentNotes.filter(n=>n.studentKey===key).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);
+  let notes=state.studentNotes.filter(n=>n.studentKey===key).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.id-a.id);
+  if(document.getElementById('hidePostedNotes')?.checked)notes=notes.filter(n=>!n.postedToZhiguang);
+  const pLabel={blue:'一般資訊',green:'一般',yellow:'需要留意',orange:'重要',red:'極重要'};
   studentNotesList.innerHTML=notes.length?notes.map(n=>`
-    <div class="note-card">
+    <div class="note-card note-priority-${n.priority||'green'} ${n.postedToZhiguang?'note-posted':''}">
       <div class="note-card-head">
-        <div><b>${n.type||'記事'}</b><div class="note-date">${n.date||''}</div></div>
+        <div><b>${n.type||'記事'}</b><div class="note-date">${n.date||''}</div>
+          <div class="note-status-line">
+            <span class="priority-chip">${pLabel[n.priority||'green']}</span>
+            <label class="note-posted-label"><input type="checkbox" ${n.postedToZhiguang?'checked':''} onchange="toggleZhiguang(${n.id},this.checked)"> 已貼到智光</label>
+          </div>
+        </div>
         <div class="note-actions">
           <button class="btn" onclick="editStudentNote(${n.id})">編輯</button>
           <button class="btn danger" onclick="deleteStudentNote(${n.id})">刪除</button>
         </div>
       </div>
       <div class="note-text">${escapeHtml(n.text||'')}</div>
-    </div>`).join(''):'<div class="empty">還沒有記事。平常想到什麼就先丟進來，月底再一次整理成電訪。</div>';
+    </div>`).join(''):'<div class="empty">目前沒有符合條件的記事。</div>';
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -937,10 +1238,19 @@ function saveStudentNote(){
     studentChinese:cur.s.chinese||'',
     date:studentNoteDate.value||today(),
     type:studentNoteType.value,
+    priority:studentNotePriority.value||'green',
+    postedToZhiguang:false,
     text
   });
   studentNoteText.value='';
-  localStorage.setItem(KEY,JSON.stringify(state));
+  saveState();
+  renderStudentNotes();
+}
+function toggleZhiguang(id,checked){
+  ensureStudentNotes();
+  const n=state.studentNotes.find(x=>x.id===id);if(!n)return;
+  n.postedToZhiguang=!!checked;
+  saveState();
   renderStudentNotes();
 }
 function editStudentNote(id){
@@ -949,20 +1259,20 @@ function editStudentNote(id){
   const val=prompt('修改記事',n.text);
   if(val===null)return;
   n.text=val.trim();
-  localStorage.setItem(KEY,JSON.stringify(state));
+  saveState();
   renderStudentNotes();
 }
 function deleteStudentNote(id){
   if(!confirm('確定刪除這則記事嗎？'))return;
   state.studentNotes=state.studentNotes.filter(x=>x.id!==id);
-  localStorage.setItem(KEY,JSON.stringify(state));
+  saveState();
   renderStudentNotes();
 }
 function notesToCallRecord(){
   ensureStudentNotes();
   const cur=notebookStudent(); if(!cur)return;
   const key=studentNoteKey(cur.c,cur.s);
-  const notes=state.studentNotes.filter(n=>n.studentKey===key).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const notes=state.studentNotes.filter(n=>n.studentKey===key&&!n.postedToZhiguang).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   if(!notes.length)return alert('目前還沒有記事可以整理');
   closeModal('studentNotebookModal');
   openCallRecord(cur.c.id,notebookStudentIndex);
@@ -993,6 +1303,26 @@ function allCallStudents(){
   return out;
 }
 
+
+function populateCallClassFilter(selectedClassId=null){
+  const classes=[...state.classes].sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+  callClassFilter.innerHTML='<option value="">全部班級</option>'+classes.map(c=>`<option value="${c.id}">${c.code||c.name}</option>`).join('');
+  if(selectedClassId)callClassFilter.value=String(selectedClassId);
+}
+function refreshCallStudentOptions(preferredValue=null){
+  const classId=callClassFilter.value?Number(callClassFilter.value):null;
+  const q=(callStudentSearch.value||'').trim().toLowerCase();
+  const all=allCallStudents().filter(s=>{
+    const sameClass=!classId||s.classId===classId;
+    const hay=[s.chinese,s.english,s.school,s.classCode].join(' ').toLowerCase();
+    return sameClass&&(!q||hay.includes(q));
+  });
+  callStudentSelect.innerHTML=all.map(s=>`<option value="${s.classId}|${s.index}">${s.english||s.chinese||'未命名'}${s.chinese?`（${s.chinese}）`:''} · ${s.classCode}</option>`).join('');
+  if(preferredValue&&[...callStudentSelect.options].some(o=>o.value===preferredValue))callStudentSelect.value=preferredValue;
+  if(all.length)callStudentChanged();
+  else callStudentSummary.innerHTML='<span style="color:var(--muted)">找不到符合的學生，請換班級或搜尋字。</span>';
+}
+
 function getCallNameMode(){
   return document.querySelector('input[name="callNameMode"]:checked')?.value||'list';
 }
@@ -1008,20 +1338,10 @@ function switchCallNameMode(mode){
 }
 
 function openCallRecord(classId=null,studentIndex=0){
-  const all=allCallStudents();
-  callStudentSelect.innerHTML=all.map((s,i)=>
-    `<option value="${s.classId}|${s.index}">${s.english||s.chinese||'未命名'}${s.chinese?`（${s.chinese}）`:''} · ${s.classCode}</option>`
-  ).join('');
-  if(classId){
-    currentCallClassId=classId;
-    currentCallStudentIndex=studentIndex||0;
-    const val=`${classId}|${studentIndex||0}`;
-    callStudentSelect.value=val;
-  }else if(all.length){
-    currentCallClassId=all[0].classId;
-    currentCallStudentIndex=all[0].index;
-    callStudentSelect.value=`${all[0].classId}|${all[0].index}`;
-  }
+  populateCallClassFilter(classId);
+  callStudentSearch.value='';
+  const preferred=classId?`${classId}|${studentIndex||0}`:null;
+  refreshCallStudentOptions(preferred);
   document.querySelector('input[name="callNameMode"][value="list"]').checked=true;
   switchCallNameMode('list');
   callSource.value='';
@@ -1046,7 +1366,6 @@ function callStudentChanged(){
   if(!cur)return;
   currentCallClassId=cur.c.id;
   currentCallStudentIndex=cur.idx;
-  callClass.value=cur.c.code||cur.c.name||'';
   callStudentSummary.innerHTML=
     `<b>${cur.s.english||cur.s.chinese||'學生'}</b>${cur.s.chinese?`（${cur.s.chinese}）`:''}　·　${cur.c.code||cur.c.name||''}`+
     `${cur.s.school?`<br><span style="color:var(--muted)">學校／班級：${cur.s.school}</span>`:''}`;
@@ -1393,12 +1712,15 @@ function render(){
   allTasks.innerHTML=state.records.filter(x=>x.type==='task').map(r=>`<div class="task ${r.done?'done':''}"><input type="checkbox" ${r.done?'checked':''} onchange="toggleTask(${r.id})"><span class="grow">${r.title}<small style="display:block;color:var(--muted)">${r.date} ${r.note||''}</small></span><button class="btn danger" onclick="delRecord(${r.id})">刪除</button></div>`).join('')||'<div class="empty">目前沒有待辦</div>';
 
   renderClasses();
+  renderAdmissions();
+  renderSmartQueue();
   dataClassCount.textContent=state.classes.length;
   renderCalendar();
 }
 ensurePollyClasses();
 localStorage.setItem(KEY,JSON.stringify(state));
 render();
+pullFromSupabase();
 </script>
 
 <script>
