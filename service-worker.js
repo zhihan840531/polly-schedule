@@ -1,4 +1,4 @@
-const CACHE='polly-workspace-v5';
+const CACHE='polly-workspace-v6';
 const ASSETS=[
   './',
   './index.html',
@@ -7,7 +7,8 @@ const ASSETS=[
   './icon-192.png',
   './icon-512.png',
   './admissions.js',
-  './workspace-enhancements.js'
+  './workspace-enhancements.js',
+  './workspace-fixes.js'
 ];
 
 function injectWorkspaceScripts(html){
@@ -17,6 +18,9 @@ function injectWorkspaceScripts(html){
   }
   if(!out.includes('workspace-enhancements.js')){
     out=out.replace('</body>','<script src="./workspace-enhancements.js?v=1"></script></body>');
+  }
+  if(!out.includes('workspace-fixes.js')){
+    out=out.replace('</body>','<script src="./workspace-fixes.js?v=1"></script></body>');
   }
   return out;
 }
@@ -41,18 +45,18 @@ self.addEventListener('fetch', e => {
   if(isAppPage){
     e.respondWith((async()=>{
       try{
-        const response=await fetch(req);
+        const response=await fetch(req,{cache:'no-store'});
         const type=response.headers.get('content-type')||'';
         if(type.includes('text/html')){
           const html=injectWorkspaceScripts(await response.text());
-          return new Response(html,{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'}});
+          return new Response(html,{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
         }
         return response;
       }catch(err){
         const cached=await caches.match('./index.html');
         if(cached){
           const html=injectWorkspaceScripts(await cached.text());
-          return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8'}});
+          return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
         }
         throw err;
       }
@@ -61,10 +65,10 @@ self.addEventListener('fetch', e => {
   }
 
   e.respondWith(
-    fetch(req)
+    fetch(req,{cache:'no-store'})
       .then(response => {
-        const copy = response.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
+        const copy=response.clone();
+        caches.open(CACHE).then(c => c.put(req,copy));
         return response;
       })
       .catch(() => caches.match(req))
