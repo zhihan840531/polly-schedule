@@ -1,4 +1,4 @@
-const CACHE='polly-workspace-v7';
+const CACHE='polly-workspace-v8';
 const ASSETS=[
   './',
   './index.html',
@@ -20,28 +20,24 @@ function injectWorkspaceScripts(html){
     out=out.replace('</body>','<script src="./workspace-enhancements.js?v=1"></script></body>');
   }
   if(!out.includes('workspace-fixes.js')){
-    out=out.replace('</body>','<script src="./workspace-fixes.js?v=2"></script></body>');
+    out=out.replace('</body>','<script src="./workspace-fixes.js?v=3"></script></body>');
   }
   return out;
 }
 
-self.addEventListener('install', e => {
+self.addEventListener('install',e=>{
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
 });
 
-self.addEventListener('fetch', e => {
+self.addEventListener('fetch',e=>{
   const req=e.request;
   const url=new URL(req.url);
-  const isAppPage=req.mode==='navigate' || url.pathname.endsWith('/polly-schedule/') || url.pathname.endsWith('/polly-schedule/index.html');
-
+  const isAppPage=req.mode==='navigate'||url.pathname.endsWith('/polly-schedule/')||url.pathname.endsWith('/polly-schedule/index.html');
   if(isAppPage){
     e.respondWith((async()=>{
       try{
@@ -63,14 +59,9 @@ self.addEventListener('fetch', e => {
     })());
     return;
   }
-
-  e.respondWith(
-    fetch(req,{cache:'no-store'})
-      .then(response => {
-        const copy=response.clone();
-        caches.open(CACHE).then(c => c.put(req,copy));
-        return response;
-      })
-      .catch(() => caches.match(req))
-  );
+  e.respondWith(fetch(req,{cache:'no-store'}).then(response=>{
+    const copy=response.clone();
+    caches.open(CACHE).then(c=>c.put(req,copy));
+    return response;
+  }).catch(()=>caches.match(req)));
 });
