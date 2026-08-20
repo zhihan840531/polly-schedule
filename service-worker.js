@@ -1,4 +1,4 @@
-const CACHE='polly-workspace-v6';
+const CACHE='polly-workspace-v7';
 const ASSETS=[
   './',
   './index.html',
@@ -20,7 +20,7 @@ function injectWorkspaceScripts(html){
     out=out.replace('</body>','<script src="./workspace-enhancements.js?v=1"></script></body>');
   }
   if(!out.includes('workspace-fixes.js')){
-    out=out.replace('</body>','<script src="./workspace-fixes.js?v=1"></script></body>');
+    out=out.replace('</body>','<script src="./workspace-fixes.js?v=2"></script></body>');
   }
   return out;
 }
