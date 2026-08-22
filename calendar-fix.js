@@ -1,5 +1,30 @@
 // Polly 工作台：天母校小學部／幼兒部行事曆匯入修正
 (function(){
+  // 手機版行事曆：固定七欄，避免長活動名稱把整個月曆撐出螢幕。
+  const mobileCalendarStyle=document.createElement('style');
+  mobileCalendarStyle.textContent=`
+    #calendarPage{min-width:0;overflow-x:hidden}
+    #calendarPage .calendar{width:100%;max-width:100%;min-width:0;grid-template-columns:repeat(7,minmax(0,1fr))}
+    #calendarPage .dow,#calendarPage .day{min-width:0;overflow:hidden}
+    #calendarPage .badge{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    @media(max-width:620px){
+      #calendarPage .calendar-head{align-items:flex-start;gap:8px}
+      #calendarPage .calendar-head h1{font-size:30px}
+      #calendarPage .calendar-head>div:last-child{display:flex;align-items:center;gap:6px;white-space:nowrap}
+      #calendarPage .calendar-head .btn{padding:8px 10px;border-radius:12px}
+      #calendarPage .calendar{border-radius:16px}
+      #calendarPage .dow{padding:8px 0;font-size:11px}
+      #calendarPage .day{min-height:82px;padding:5px 4px;font-size:12px}
+      #calendarPage .day>b{font-size:13px}
+      #calendarPage .badge{margin-top:4px;padding:4px 3px;border-radius:6px;font-size:8.5px;line-height:1.2}
+    }
+    @media(max-width:390px){
+      #calendarPage .day{min-height:74px;padding:4px 3px}
+      #calendarPage .badge{font-size:8px;padding:3px 2px}
+    }
+  `;
+  document.head.appendChild(mobileCalendarStyle);
+
   function isoDate(year,month,day){
     return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
   }
