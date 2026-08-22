@@ -18,6 +18,11 @@ body{margin:0;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;back
     const res=await fetch(url,{cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     let html=await res.text();
+    html=html.replace('</head>',`<style>
+      /* 首頁卡片間距：避免「今日待處理」與「今日時間軸」黏在一起 */
+      #todayPage .grid{margin-top:16px;}
+      @media(max-width:720px){#todayPage .grid{margin-top:14px;}}
+    </style></head>`);
     html=html.replace('</body>','<script src="./calendar-fix.js?v=3"><\/script></body>');
     document.open();
     document.write(html);
