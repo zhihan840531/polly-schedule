@@ -1,0 +1,171 @@
+name: Patch school calendar import
+
+on:
+  push:
+    paths:
+      - '.github/workflows/calendar-import-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch calendar importer
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          start = text.index('let pendingSchoolCalendar=[];')
+          end = text.index('async function readPdf(file){', start)
+
+          replacement = r'''let pendingSchoolCalendar=[];
+function schoolDate(v){
+  if(!v)return '';
+  const s=String(v).trim();
+  let m=s.match(/(20\d{2})[\/\-.年]\s*(\d{1,2})[\/\-.月]\s*(\d{1,2})/);
+  if(m)return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  m=s.match(/(\d{2,3})[\/\-.年]\s*(\d{1,2})[\/\-.月]\s*(\d{1,2})/);
+  if(m){let y=+m[1];if(y<1911)y+=1911;return `${y}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`}
+  m=s.match(/(\d{1,2})[\/\-.月]\s*(\d{1,2})/);
+  if(m)return `${new Date().getFullYear()}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+  return '';
+}
+function schoolType(t){return /放假|停課|補假|國定|春節|連假/.test(t)?'放假／停課':/考|評量|期中|期末/.test(t)?'考試／評量':'學校活動'}
+function parseSchoolText(text){
+  const a=[];
+  String(text).split(/\n+/).forEach(line=>{
+    line=line.replace(/\s+/g,' ').trim(); const date=schoolDate(line); if(!date)return;
+    let title=line.replace(/(20\d{2}|\d{2,3})[\/\-.年]\s*\d{1,2}[\/\-.月]\s*\d{1,2}[日]?/,'').replace(/\d{1,2}[\/\-.月]\s*\d{1,2}[日]?/,'').replace(/^[｜|:：\-–—\s]+/,'').trim();
+    if(!title)title='學校行事';
+    a.push({date,title,type:schoolType(title),departments:[]});
+  }); return a;
+}
+function calendarIso(year,month,day){
+  return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+function normalizeCalendarTitle(s){
+  return String(s||'').replace(/\s+/g,' ').replace(/\s*([：:、，,（）()])\s*/g,'$1').trim();
+}
+function parseTianmuCalendarSheet(ws){
+  const grid=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+  const header=grid.slice(0,4).flat().map(String).join(' ');
+  let dept='';
+  if(/小學部行事曆/.test(header))dept='小學部';
+  else if(/幼兒園部行事曆/.test(header))dept='幼兒部';
+  else return [];
+
+  let currentYear=new Date().getFullYear(),currentMonth=1;
+  const out=[];
+  for(const row of grid){
+    for(const raw of row){
+      const s=String(raw||'').replace(/\s+/g,' ').trim();
+      if(!s)continue;
+      const monthHead=s.match(/(20\d{2})年\s*(\d{1,2})月/);
+      if(monthHead){currentYear=+monthHead[1];currentMonth=+monthHead[2];continue}
+
+      const m=s.match(/^\s*(\d{1,2})\/(\d{1,2})(?:\s*(?:-|–|—|~|～)\s*(?:(\d{1,2})\/)?(\d{1,2}))?\s*(?:\([一二三四五六日]\))?\s*/);
+      if(!m)continue;
+      let title=normalizeCalendarTitle(s.slice(m[0].length).replace(/^[：:\-–—\s]+/,''));
+      if(!title)continue; // 月曆格中的單純日期不是活動
+
+      const sm=+m[1],sd=+m[2];
+      let sy=currentYear;
+      if(currentMonth===12&&sm===1)sy=currentYear+1;
+      else if(currentMonth===1&&sm===12)sy=currentYear-1;
+      const date=calendarIso(sy,sm,sd);
+
+      let endDate='';
+      if(m[4]){
+        const em=m[3]?+m[3]:sm,ed=+m[4];
+        let ey=sy;
+        if(sm===12&&em===1)ey=sy+1;
+        endDate=calendarIso(ey,em,ed);
+      }
+      out.push({date,endDate,title,type:schoolType(title),departments:[dept]});
+    }
+  }
+  return out;
+}
+function mergeSchoolCalendarRows(rows){
+  const map=new Map();
+  rows.forEach(r=>{
+    const key=`${r.date}|${r.endDate||''}|${normalizeCalendarTitle(r.title)}`;
+    if(!map.has(key))map.set(key,{...r,departments:[...(r.departments||[])]});
+    else{
+      const cur=map.get(key);
+      cur.departments=[...new Set([...(cur.departments||[]),...(r.departments||[])])];
+    }
+  });
+  return [...map.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.title.localeCompare(b.title,'zh-Hant'));
+}
+async function startSchoolCalendarImport(inp){
+  const f=inp.files?.[0];if(!f)return;
+  schoolCalStatus.textContent='⏳ 正在讀取小學部／幼兒部行事曆…';
+  try{
+    let rows=[],name=f.name.toLowerCase();
+    if(name.endsWith('.xlsx')||name.endsWith('.xls')||name.endsWith('.csv')){
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+      wb.SheetNames.forEach(sn=>{rows.push(...parseTianmuCalendarSheet(wb.Sheets[sn]))});
+      rows=mergeSchoolCalendarRows(rows);
+      if(!rows.length)throw new Error('沒有找到「小學部行事曆」或「幼兒園部行事曆」。請確認檔案內容。');
+    }else{
+      const doc=await readPdf(f); rows=parseSchoolText(doc.text);
+    }
+    pendingSchoolCalendar=rows;
+    const elem=rows.filter(r=>(r.departments||[]).includes('小學部')).length;
+    const kinder=rows.filter(r=>(r.departments||[]).includes('幼兒部')).length;
+    schoolCalStatus.textContent=`✓ 找到 ${rows.length} 筆（小學部 ${elem}／幼兒部 ${kinder}），請確認`;
+    renderSchoolCalPreview();schoolCalModal.classList.add('open');
+  }catch(e){schoolCalStatus.textContent='讀取失敗：'+(e.message||e)}
+  inp.value='';
+}
+function renderSchoolCalPreview(){
+ schoolCalPreview.innerHTML=pendingSchoolCalendar.length?pendingSchoolCalendar.map((r,i)=>{
+   const dept=(r.departments||[]).join('＋')||'學校';
+   const range=r.endDate?` ～ ${r.endDate}`:'';
+   return `<div class="school-cal-row" title="${dept}${range}"><input type="date" value="${r.date}" onchange="pendingSchoolCalendar[${i}].date=this.value"><input class="school-cal-title" value="${String(r.title).replace(/"/g,'&quot;')}" onchange="pendingSchoolCalendar[${i}].title=this.value"><select onchange="pendingSchoolCalendar[${i}].type=this.value"><option ${r.type==='學校活動'?'selected':''}>學校活動</option><option ${r.type==='放假／停課'?'selected':''}>放假／停課</option><option ${r.type==='考試／評量'?'selected':''}>考試／評量</option></select><button class="btn danger" onclick="pendingSchoolCalendar.splice(${i},1);renderSchoolCalPreview()">✕</button></div>`;
+ }).join(''):'<div class="empty">沒有辨識到日期事件。</div>';
+}
+function confirmSchoolCalendarImport(){
+ if(!pendingSchoolCalendar.length)return alert('沒有可匯入的行事');
+ state.schoolCalendarEvents=state.schoolCalendarEvents||[];
+ state.tasks=state.tasks||[];
+ let added=0,merged=0;
+ pendingSchoolCalendar.forEach((r,i)=>{
+   const key=x=>`${x.date}|${normalizeCalendarTitle(x.title)}`;
+   const existing=state.schoolCalendarEvents.find(x=>key(x)===key(r));
+   if(existing){
+     existing.departments=[...new Set([...(existing.departments||[]),...(r.departments||[])])];
+     if(r.endDate&&!existing.endDate)existing.endDate=r.endDate;
+     merged++;
+     return;
+   }
+   state.schoolCalendarEvents.push({id:Date.now()+i,date:r.date,endDate:r.endDate||'',title:r.title,type:r.type,departments:r.departments||[],source:'天母校行事曆'});
+   if(!state.tasks.some(t=>t.date===r.date&&t.title===`📅 ${r.title}`))state.tasks.push({id:Date.now()+10000+i,date:r.date,title:`📅 ${r.title}`,category:'學校行事',done:false});
+   added++;
+ });
+ const total=pendingSchoolCalendar.length;persist();pendingSchoolCalendar=[];closeModal('schoolCalModal');schoolCalStatus.textContent=`✓ 已加入 ${added} 筆${merged?`，合併 ${merged} 筆重複活動`:''}`;alert(`完成！共辨識 ${total} 筆，新增 ${added} 筆${merged?`、合併 ${merged} 筆重複活動`:''}。`);
+}'''
+
+          path.write_text(text[:start] + replacement + '\n\n' + text[end:], encoding='utf-8')
+          PY
+      - name: Commit patched importer
+        shell: bash
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "fix: import elementary and kindergarten calendar sheets"
+          git push
