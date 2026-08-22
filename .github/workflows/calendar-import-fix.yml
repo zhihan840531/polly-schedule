@@ -74,7 +74,7 @@ function parseTianmuCalendarSheet(ws){
       const m=s.match(/^\s*(\d{1,2})\/(\d{1,2})(?:\s*(?:-|–|—|~|～)\s*(?:(\d{1,2})\/)?(\d{1,2}))?\s*(?:\([一二三四五六日]\))?\s*/);
       if(!m)continue;
       let title=normalizeCalendarTitle(s.slice(m[0].length).replace(/^[：:\-–—\s]+/,''));
-      if(!title)continue; // 月曆格中的單純日期不是活動
+      if(!title)continue;
 
       const sm=+m[1],sd=+m[2];
       let sy=currentYear;
@@ -169,3 +169,5 @@ function confirmSchoolCalendarImport(){
           git add index.html
           git commit -m "fix: import elementary and kindergarten calendar sheets"
           git push
+
+# trigger-2
