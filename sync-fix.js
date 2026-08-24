@@ -13,56 +13,35 @@
     if(!id){id='dev-'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem(DEVICE_KEY,id);}
     return id;
   }
-  function meta(){
-    try{return JSON.parse(localStorage.getItem(META_KEY)||'{}')||{};}catch{return {};}
-  }
-  function setMeta(patch){
-    const m={...meta(),...patch};
-    localStorage.setItem(META_KEY,JSON.stringify(m));
-    return m;
-  }
-  function badge(text){
-    try{const el=document.getElementById('syncBadge');if(el)el.textContent=text;}catch{}
-  }
-  function normalizeState(s){
-    if(!s||typeof s!=='object')return s;
-    return s;
-  }
-  async function cloudRow(){
-    const {data,error}=await supa.from('workspace_state').select('data,updated_at').eq('id',SUPA_ROW_ID).maybeSingle();
-    if(error)throw error;
-    return data||null;
-  }
+  function meta(){try{return JSON.parse(localStorage.getItem(META_KEY)||'{}')||{};}catch{return {};}}
+  function setMeta(patch){const m={...meta(),...patch};localStorage.setItem(META_KEY,JSON.stringify(m));return m;}
+  function badge(text){try{const el=document.getElementById('syncBadge');if(el)el.textContent=text;}catch{}}
+  async function cloudRow(){const {data,error}=await supa.from('workspace_state').select('data,updated_at').eq('id',SUPA_ROW_ID).maybeSingle();if(error)throw error;return data||null;}
+
   async function pushNow(reason='save'){
     if(applyingRemote)return;
     const stamp=nowIso();
-    const m=setMeta({localUpdatedAt:stamp,deviceId:deviceId(),pending:true});
+    const dev=deviceId();
+    setMeta({localUpdatedAt:stamp,deviceId:dev,pending:true});
     badge('同步中…');
-    const payload=normalizeState(state);
+    const payload={...state,_syncMeta:{version:2,updatedAt:stamp,deviceId:dev}};
     const {error}=await supa.from('workspace_state').upsert({id:SUPA_ROW_ID,data:payload,updated_at:stamp},{onConflict:'id'});
-    if(error){
-      console.error('Polly sync push failed',error);
-      setMeta({pending:true,lastError:String(error.message||error)});
-      badge('同步失敗');
-      throw error;
-    }
+    if(error){console.error('Polly sync push failed',error);setMeta({pending:true,lastError:String(error.message||error)});badge('同步失敗');throw error;}
+    state=payload;
+    localStorage.setItem(KEY,JSON.stringify(state));
     setMeta({pending:false,lastPushedAt:stamp,cloudUpdatedAt:stamp,lastError:''});
     badge('已同步 ✓');
   }
-  function schedulePush(){
-    clearTimeout(timer);
-    timer=setTimeout(()=>pushNow().catch(()=>{}),350);
-  }
+  function schedulePush(){clearTimeout(timer);timer=setTimeout(()=>pushNow().catch(()=>{}),350);}
   function applyCloud(cloud){
     if(!cloud||!cloud.data)return;
     applyingRemote=true;
     try{
-      state=normalizeState(cloud.data);
+      state=cloud.data;
       localStorage.setItem(KEY,JSON.stringify(state));
-      setMeta({cloudUpdatedAt:cloud.updated_at||nowIso(),localUpdatedAt:cloud.updated_at||nowIso(),pending:false,lastPulledAt:nowIso()});
+      setMeta({cloudUpdatedAt:cloud.updated_at||nowIso(),localUpdatedAt:cloud.updated_at||nowIso(),pending:false,lastPulledAt:nowIso(),deviceId:deviceId()});
       if(typeof ensurePollyClasses==='function')ensurePollyClasses();
-      if(typeof render==='function')render();
-      else if(typeof renderAll==='function')renderAll();
+      if(typeof render==='function')render();else if(typeof renderAll==='function')renderAll();
       badge('已同步 ✓');
     }finally{applyingRemote=false;}
   }
@@ -75,9 +54,10 @@
       const localTs=Date.parse(m.localUpdatedAt||0)||0;
       const pending=!!m.pending;
 
-      // 第一次套用新版同步時，優先保留目前裝置資料，避免舊雲端覆蓋手機/電腦上的新資料。
       if(startup&&!m.localUpdatedAt){
-        localStorage.setItem(KEY,JSON.stringify(state));
+        // 如果另一台裝置已經升級到 v2，就直接以雲端為準，避免第二台舊資料反蓋回去。
+        if(Number(cloud.data?._syncMeta?.version||0)>=2){applyCloud(cloud);return;}
+        // 第一次只有一台裝置會走到這裡：保留這台目前的資料並建立 v2 雲端基準。
         setMeta({localUpdatedAt:nowIso(),deviceId:deviceId(),pending:true});
         await pushNow('migration');
         return;
@@ -87,13 +67,9 @@
       if(cloudTs>localTs){applyCloud(cloud);return;}
       if(localTs>cloudTs){await pushNow('newer-local');return;}
       badge('已同步 ✓');
-    }catch(e){
-      console.error('Polly sync check failed',e);
-      badge(navigator.onLine?'同步失敗':'離線，使用本機資料');
-    }
+    }catch(e){console.error('Polly sync check failed',e);badge(navigator.onLine?'同步失敗':'離線，使用本機資料');}
   }
 
-  // 取代舊版 saveState/persist，所有新增、編輯、刪除都會真正寫到 Supabase。
   try{
     saveState=function(){
       localStorage.setItem(KEY,JSON.stringify(state));
@@ -107,9 +83,7 @@
   window.addEventListener('online',()=>syncCheck());
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncCheck();});
   window.addEventListener('focus',()=>syncCheck());
-
   setTimeout(()=>syncCheck({startup:true}),250);
-  clearInterval(poller);
   poller=setInterval(()=>{if(document.visibilityState==='visible')syncCheck();},POLL_MS);
-  console.log('Polly sync fix v2 loaded');
+  console.log('Polly sync fix v2.1 loaded');
 })();
