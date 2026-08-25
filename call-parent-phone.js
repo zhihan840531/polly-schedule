@@ -43,19 +43,14 @@
     const ref=currentStudentRef(),el=document.getElementById('callParentPhone');
     if(!ref||!el)return;
     ref.s.parentPhone=el.value.trim();
-    // studentDetails 是正式學生資料來源；若舊資料只有 students，先轉成 studentDetails 再寫入。
     if(!(ref.c.studentDetails||[]).length){
-      ref.c.studentDetails=(ref.c.students||[]).map((e,i)=>({
-        chinese:'',english:e,birthday:'',school:'',
-        parentPhone:i===ref.idx?el.value.trim():''
-      }));
+      ref.c.studentDetails=(ref.c.students||[]).map((e,i)=>({chinese:'',english:e,birthday:'',school:'',parentPhone:i===ref.idx?el.value.trim():''}));
     }else if(ref.c.studentDetails[ref.idx]){
       ref.c.studentDetails[ref.idx].parentPhone=el.value.trim();
     }
     if(typeof persist==='function')persist();
   }
 
-  // 在「新增學生」視窗加入家長電話欄位，直接存進 studentDetails。
   function ensureNewStudentPhoneField(){
     const modal=document.getElementById('studentModal');
     if(!modal||document.getElementById('newStudentParentPhone'))return;
@@ -89,32 +84,7 @@
     return r;
   };
 
-  // 班級學生清單直接顯示電話，手機可點擊撥號。
-  const oldShowClassDetail=window.showClassDetail;
-  if(typeof oldShowClassDetail==='function')window.showClassDetail=function(){
-    const r=oldShowClassDetail.apply(this,arguments);
-    setTimeout(()=>{
-      document.querySelectorAll('#detailStudents tr[data-student-index]').forEach(()=>{});
-      const c=state.classes.find(x=>x.id===arguments[0]);
-      if(!c)return;
-      const details=(c.studentDetails||[]).length?c.studentDetails:(c.students||[]).map(e=>({chinese:'',english:e,birthday:'',school:'',parentPhone:''}));
-      const rows=document.querySelectorAll('#detailStudents .student-table tbody tr');
-      rows.forEach((row,i)=>{
-        const s=details[i];if(!s)return;
-        const cells=row.querySelectorAll('td');
-        if(!cells.length||row.querySelector('.parent-phone-cell'))return;
-        const td=document.createElement('td');td.className='parent-phone-cell';
-        td.innerHTML=s.parentPhone?`<a href="tel:${cleanPhone(s.parentPhone)}" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none">📞 ${s.parentPhone}</a>`:'—';
-        row.appendChild(td);
-      });
-      const head=document.querySelector('#detailStudents .student-table thead tr');
-      if(head&&!head.querySelector('.parent-phone-head')){
-        const th=document.createElement('th');th.className='parent-phone-head';th.textContent='家長電話';head.appendChild(th);
-      }
-    },0);
-    return r;
-  };
-
+  // 電訪視窗仍可查看、編輯與撥打家長電話；班級清單的家長電話欄統一交給 student-checklist.js 顯示，避免重複欄位。
   const oldOpen=window.openCallRecord;
   if(typeof oldOpen==='function')window.openCallRecord=function(){const r=oldOpen.apply(this,arguments);setTimeout(loadCurrentPhone,0);return r;};
   const oldRender=window.renderCallStudents;
