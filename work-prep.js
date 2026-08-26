@@ -5,8 +5,13 @@
   const defaultPrep={school:{},camp:{}};
   let data=load();
 
+  function getWorkspaceState(){
+    try{return typeof state!=='undefined'&&state&&typeof state==='object'?state:null;}catch(e){return null;}
+  }
   function load(){
     try{
+      const workspace=getWorkspaceState();
+      if(workspace&&workspace.workPrep)return workspace.workPrep;
       const saved=JSON.parse(localStorage.getItem(STORE)||'null');
       if(saved)return saved;
       const legacy=JSON.parse(localStorage.getItem(LEGACY)||'null');
@@ -15,7 +20,19 @@
       return fresh;
     }catch(e){return {prep:JSON.parse(JSON.stringify(defaultPrep)),admin:[]};}
   }
-  function save(){try{localStorage.setItem(STORE,JSON.stringify(data));}catch(e){}}
+  function syncFromWorkspace(){
+    const workspace=getWorkspaceState();
+    if(workspace&&workspace.workPrep&&workspace.workPrep!==data)data=workspace.workPrep;
+  }
+  function save(){
+    try{localStorage.setItem(STORE,JSON.stringify(data));}catch(e){}
+    const workspace=getWorkspaceState();
+    if(workspace){
+      workspace.workPrep=data;
+      if(typeof saveState==='function')saveState();
+      else if(typeof pushToSupabase==='function')pushToSupabase();
+    }
+  }
   function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
   function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 
@@ -36,6 +53,12 @@
   function removeDuplicateUI(){
     // 首頁：移除舊「待處理」與「請假／代課」卡片
     ['todayTasks','todaySpecial'].forEach(id=>{const el=document.getElementById(id);const card=el&&el.closest('.card');if(card)card.remove();});
+    // ID 是主要定位方式；標題比對是舊版／載入順序不同時的備援。
+    document.querySelectorAll('#today .card').forEach(card=>{
+      const heading=(card.querySelector('.section-title h2,h2')?.textContent||'').trim();
+      if(/^待處理(?:\\s|$)/.test(heading)&&!/^今日待處理(?:\\s|$)/.test(heading))card.remove();
+      if(/^請假\\s*[\\/／]\\s*代課(?:\\s|$)/.test(heading))card.remove();
+    });
     // 如果右側 grid 已空，讓左側內容全寬
     const today=document.getElementById('today');
     if(today){const grid=today.querySelector('.grid');if(grid){[...grid.children].forEach(ch=>{if(!ch.querySelector('.card'))ch.remove();});if(grid.children.length===1)grid.style.gridTemplateColumns='1fr';}}
@@ -51,6 +74,7 @@
   }
 
   function ensureWorkPage(){
+    syncFromWorkspace();
     const work=document.getElementById('work')||[...document.querySelectorAll('.page')].find(p=>/工作/.test((p.querySelector('h1')||{}).textContent||''));
     if(!work)return;
     let host=work.querySelector('#pollyWorkPrep');
@@ -129,7 +153,17 @@
   function addAdmin(host){const v=promptItem();if(!v)return;data.admin=data.admin||[];data.admin.push({id:uid(),done:false,...v});save();render(host);}
   function editItem(it,done){const v=promptItem(it);if(!v)return;Object.assign(it,v);done();}
 
-  function init(){ensureWorkPage();removeDuplicateUI();setTimeout(()=>{ensureWorkPage();removeDuplicateUI();},700);}
+  function init(){
+    ensureWorkPage();
+    removeDuplicateUI();
+    setTimeout(()=>{
+      syncFromWorkspace();
+      const workspace=getWorkspaceState();
+      if(workspace&&!workspace.workPrep)save();
+      ensureWorkPage();
+      removeDuplicateUI();
+    },700);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,500));else setTimeout(init,500);
   document.addEventListener('click',()=>setTimeout(removeDuplicateUI,30));
 })();
