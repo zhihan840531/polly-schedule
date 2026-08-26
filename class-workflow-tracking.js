@@ -1,4 +1,4 @@
-// Polly 工作台：班級流程、考試提醒、簿本複查 v1
+// Polly 工作台：班級流程、考試提醒、簿本複查 v2
 (function(){
   const STORE='polly_class_workflow_v1', PREP='polly_work_prep_v2';
   const ELEMENTARY=['確認學生名單','學生通訊錄製作','打開課電話','準備教材','準備姓名貼','催費','準備聯絡本','準備通知單｜定型化契約','準備通知單｜課程介紹信','準備通知單｜請假退費辦法','準備通知單｜代辦必發','準備通知單｜行事曆','教材歸位','準備考試卷','準備學習單'];
@@ -13,12 +13,34 @@
   function key(c){return String(c.code||c.id||c.name||'').trim()}
   function label(c){return c.name||c.code||'未命名班級'}
   function students(c){return Array.isArray(c.students)?c.students:[]}
-  function typeOf(c){if(c.workflowType)return c.workflowType;const s=(c.code||c.name||'').toUpperCase();return /^PH/.test(s)?'幼兒園部':'國小部'}
+  function typeOf(c){const s=String(c.code||c.name||'').toUpperCase();if(/^PH/.test(s))return '幼兒園部';if(c.workflowType)return c.workflowType;return '國小部'}
+  function isPhonics(c){const s=[c.name,c.code,c.title,c.courseName].filter(Boolean).join(' ');return /自然發音|發音|phonics?/i.test(s)}
+  function examEligible(c){return typeOf(c)==='國小部'&&!isPhonics(c)}
   function prepData(){try{return JSON.parse(localStorage.getItem(PREP)||'null')||{prep:{school:{},camp:{}},admin:[]}}catch(e){return {prep:{school:{},camp:{}},admin:[]}}}
   function seedPrep(c){const p=prepData();p.prep=p.prep||{school:{},camp:{}};p.prep.school=p.prep.school||{};const k=key(c);if(!p.prep.school[k]||!(p.prep.school[k].items||[]).length){const tpl=typeOf(c)==='幼兒園部'?KINDER:ELEMENTARY;p.prep.school[k]={items:tpl.map(title=>({id:uid(),title,done:false,date:'',note:''})),note:''};localStorage.setItem(PREP,JSON.stringify(p));window.dispatchEvent(new Event('polly-data-changed'));}}
   function addClass(){const name=prompt('班級名稱');if(!name)return;const type=prompt('班級類型：國小部／幼兒園部／冬夏令營','國小部');if(!['國小部','幼兒園部','冬夏令營'].includes(type))return alert('請輸入：國小部、幼兒園部或冬夏令營');const c={id:'custom-'+uid(),name:name.trim(),code:name.trim(),workflowType:type,students:[],custom:true};data.extraClasses.push(c);save();if(type!=='冬夏令營')seedPrep(c);render();}
   function deleteClass(c){if(!c.custom)return alert('這是原本班級資料，請到班級管理刪除；這裡只刪除手動新增的短期班。');if(!confirm(`確定刪除「${label(c)}」嗎？相關考試與複查紀錄也會刪除。`))return;const k=key(c);data.extraClasses=data.extraClasses.filter(x=>x.id!==c.id);data.events=data.events.filter(x=>x.classKey!==k);data.reviews=data.reviews.filter(x=>x.classKey!==k);save();render();}
-  function addEvent(){const cs=classes();if(!cs.length)return alert('目前沒有班級');const cn=prompt('班級名稱\n'+cs.map(label).join('、'));const c=cs.find(x=>label(x)===cn||(x.code||'')===cn);if(!c)return alert('找不到班級');const type=prompt('事項：單字小考／單元考','單字小考');if(!['單字小考','單元考'].includes(type))return;const date=prompt('考試日期（YYYY-MM-DD）');if(!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return alert('日期格式請輸入 YYYY-MM-DD');data.events.push({id:uid(),classKey:key(c),className:label(c),type,date,done:false});save();render();}
+  function closeModal(){document.getElementById('wfModal')?.remove()}
+  function addEvent(){
+    const cs=classes().filter(examEligible);
+    if(!cs.length)return alert('目前沒有需要設定考試的班級');
+    closeModal();
+    const modal=document.createElement('div');modal.id='wfModal';modal.style.cssText='position:fixed;inset:0;z-index:9999;background:#0006;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML=`<div style="width:min(92vw,430px);background:#fffdf8;border-radius:18px;padding:18px;box-shadow:0 18px 50px #0004">
+      <h3 style="margin:0 0 14px">新增考試</h3>
+      <label style="display:block;font-weight:700;margin:10px 0 6px">班級</label>
+      <select id="wfExamClass" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:16px">${cs.map(c=>`<option value="${esc(key(c))}">${esc(label(c))}</option>`).join('')}</select>
+      <label style="display:block;font-weight:700;margin:14px 0 6px">考試類型</label>
+      <select id="wfExamType" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:16px"><option>單字小考</option><option>單元考</option></select>
+      <label style="display:block;font-weight:700;margin:14px 0 6px">考試日期</label>
+      <input id="wfExamDate" type="date" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:#fff">
+      <div style="display:flex;gap:8px;margin-top:18px"><button class="btn" id="wfExamCancel" style="flex:1">取消</button><button class="btn primary" id="wfExamSave" style="flex:1">儲存</button></div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});
+    modal.querySelector('#wfExamCancel').onclick=closeModal;
+    modal.querySelector('#wfExamSave').onclick=()=>{const ck=modal.querySelector('#wfExamClass').value,type=modal.querySelector('#wfExamType').value,date=modal.querySelector('#wfExamDate').value;if(!date)return alert('請先選擇考試日期');const c=cs.find(x=>key(x)===ck);if(!c)return;data.events.push({id:uid(),classKey:key(c),className:label(c),type,date,done:false});save();closeModal();render();};
+  }
   function addReview(){const cs=classes();if(!cs.length)return alert('目前沒有班級');const cn=prompt('要複查哪個班級？\n'+cs.map(label).join('、'));const c=cs.find(x=>label(x)===cn||(x.code||'')===cn);if(!c)return alert('找不到班級');const date=prompt('本輪複查日期（YYYY-MM-DD）',new Date().toISOString().slice(0,10));if(!date)return;const roster=students(c).map(s=>({id:s.id||s.name||uid(),name:s.name||s.englishName||String(s),first:'pending',second:'na'}));data.reviews.push({id:uid(),classKey:key(c),className:label(c),date,students:roster});save();render();}
   function daysUntil(s){const a=new Date();a.setHours(0,0,0,0);const b=new Date(s+'T00:00:00');return Math.ceil((b-a)/86400000)}
   function renderHome(){const page=document.getElementById('today');if(!page)return;let box=document.getElementById('workflowAlerts');if(!box){box=document.createElement('div');box.id='workflowAlerts';box.className='card';box.style.marginBottom='14px';const anchor=page.querySelector('.grid')||page.firstChild;page.insertBefore(box,anchor)}const due=data.events.filter(e=>!e.done&&daysUntil(e.date)<=2);const rev=data.reviews.filter(r=>r.students.some(s=>s.first==='pending'||s.second==='pending'));if(!due.length&&!rev.length){box.style.display='none';return}box.style.display='block';box.innerHTML='<h2 style="margin-top:0">🔔 近期提醒</h2>'+due.map(e=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>📝 ${esc(e.className)}｜${esc(e.type)}</b><div style="font-size:12px;color:var(--muted)">${esc(e.date)} · ${daysUntil(e.date)<0?'已逾期':daysUntil(e.date)===0?'今天':daysUntil(e.date)+' 天後'}</div><button class="btn wfDone" data-id="${e.id}" style="margin-top:5px">已完成</button></div>`).join('')+rev.map(r=>{const f=r.students.filter(s=>s.first==='pending').length,q=r.students.filter(s=>s.second==='pending').length;return `<div style="padding:8px 0"><b>📚 ${esc(r.className)}｜簿本複查</b><div style="font-size:12px;color:var(--muted)">初查未完成 ${f} 人｜待二次複查 ${q} 人</div></div>`}).join('');box.querySelectorAll('.wfDone').forEach(b=>b.onclick=()=>{const e=data.events.find(x=>x.id===b.dataset.id);if(e)e.done=true;save();render()})}
