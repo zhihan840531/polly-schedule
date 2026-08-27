@@ -1,0 +1,26 @@
+// Polly 工作台：班級週期／本期設定（獨立手機版）
+(function(){
+ const KEY='polly_class_cycles_v1';
+ let cycles={};try{cycles=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){}
+ const save=()=>localStorage.setItem(KEY,JSON.stringify(cycles));
+ const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ function allClasses(){try{if(typeof state!=='undefined'&&state&&Array.isArray(state.classes))return state.classes;}catch(e){}try{if(typeof POLLY_CLASS_DATA!=='undefined')return POLLY_CLASS_DATA;}catch(e){}return[];}
+ function key(c){return String(c.code||c.id||c.name||'');}
+ function isoFromROC(s){const m=String(s||'').match(/^(\d{3})\/(\d{1,2})\/(\d{1,2})$/);if(!m)return /^\d{4}-\d{2}-\d{2}$/.test(String(s||''))?s:'';return `${Number(m[1])+1911}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;}
+ function rec(c){const k=key(c);if(!cycles[k])cycles[k]={start:isoFromROC(c.start),end:isoFromROC(c.end),prepDeadline:'',history:[]};return cycles[k];}
+ function dayBefore(s){if(!s)return'';const d=new Date(s+'T12:00:00');d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);}
+ function close(){document.getElementById('pollyCycleOverlayV3')?.remove();}
+ function field(label,id,value){return `<div style="margin-top:12px"><label for="${id}" style="display:block;font-size:14px;font-weight:800;margin-bottom:6px">${label}</label><input id="${id}" type="date" value="${esc(value)}" style="display:block;width:100%;box-sizing:border-box;height:50px;padding:0 12px;border:1px solid #e6d8aa;border-radius:13px;background:#fffdf8;color:#3f3b32;font-size:16px"></div>`;}
+ function open(c){
+  close();const r=rec(c);if(!r.prepDeadline)r.prepDeadline=dayBefore(r.start);
+  const o=document.createElement('div');o.id='pollyCycleOverlayV3';o.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.38);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';
+  o.innerHTML=`<div id="pollyCycleSheetV3" style="position:relative;width:min(100%,460px);max-height:84vh;overflow:auto;box-sizing:border-box;background:#FFF2CC;border:1px solid #eadcae;border-radius:24px;padding:20px;box-shadow:0 20px 55px rgba(0,0,0,.28)"><button id="pollyCycleCloseV3" aria-label="關閉" style="position:absolute;top:14px;right:14px;width:42px;height:42px;border:1px solid #e6d8aa;border-radius:14px;background:#fffdf8;color:#1683e8;font-size:24px;line-height:1">×</button><h2 style="margin:2px 52px 16px 0;font-size:22px">📅 班級本期設定</h2><div style="background:#fff9e7;border:1px solid #eadfb8;border-radius:15px;padding:12px 14px"><b style="font-size:18px">${esc(c.name||c.code)}</b><div style="font-size:12px;color:#817b6e;margin-top:3px">${esc(c.code||'')}</div></div>${field('開課日期','cyStartV3',r.start)}${field('結束日期','cyEndV3',r.end)}${field('開學準備截止日','cyPrepV3',r.prepDeadline)}<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px"><button id="cySaveV3" style="min-height:48px;border:0;border-radius:13px;background:#e9c768;color:#1683e8;font-weight:800;font-size:16px">儲存本期</button><button id="cyNewV3" style="min-height:48px;border:1px solid #e6d8aa;border-radius:13px;background:#fffdf8;color:#1683e8;font-weight:750;font-size:15px">🔄 建立新一期</button></div>${r.history.length?`<div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3d5aa"><b>歷史期別</b>${r.history.map(h=>`<div style="font-size:13px;color:#817b6e;padding:6px 0">${esc(h.start)} ～ ${esc(h.end)}</div>`).join('')}</div>`:''}</div>`;
+  document.body.appendChild(o);o.onclick=e=>{if(e.target===o)close();};o.querySelector('#pollyCycleCloseV3').onclick=close;
+  o.querySelector('#cySaveV3').onclick=()=>{r.start=o.querySelector('#cyStartV3').value;r.end=o.querySelector('#cyEndV3').value;r.prepDeadline=o.querySelector('#cyPrepV3').value;save();close();};
+  o.querySelector('#cyNewV3').onclick=()=>{if(!confirm('建立新一期後，會保留本期日期到歷史紀錄，並將新一期的準備確認重新開始。確定嗎？'))return;if(r.start||r.end)r.history.unshift({start:r.start,end:r.end,prepDeadline:r.prepDeadline,closedAt:new Date().toISOString()});r.start='';r.end='';r.prepDeadline='';save();try{const wp=JSON.parse(localStorage.getItem('polly_work_prep_v2')||'{}');['school','camp'].forEach(sec=>{if(wp.prep&&wp.prep[sec]&&wp.prep[sec][key(c)]&&Array.isArray(wp.prep[sec][key(c)].items))wp.prep[sec][key(c)].items.forEach(i=>i.done=false);});localStorage.setItem('polly_work_prep_v2',JSON.stringify(wp));}catch(e){}open(c);};
+ }
+ function addButtons(){document.querySelectorAll('#classList .class-card, #classList .card').forEach(card=>{const old=card.querySelector('.cycleBtn');if(old)old.remove();if(card.querySelector('.cycleBtnV3'))return;const txt=card.innerText||'';const c=allClasses().find(x=>txt.includes(x.code||'___')||txt.includes(x.name||'___'));if(!c)return;const b=document.createElement('button');b.className='btn cycleBtnV3';b.textContent='📅 本期設定';b.style.marginTop='8px';b.onclick=e=>{e.stopPropagation();open(c);};card.appendChild(b);});}
+ function init(){addButtons();setTimeout(addButtons,800);}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,700));else setTimeout(init,700);
+ document.addEventListener('click',()=>setTimeout(addButtons,100));
+})();
