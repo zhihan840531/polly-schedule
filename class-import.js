@@ -1,6 +1,7 @@
 // Polly 工作台：115Polly.xlsx 專用班級名單匯入
 (function(){
   const norm=s=>String(s??'').trim().replace(/\s+/g,' ');
+  const canonicalCode=code=>norm(code).toUpperCase().replace(/^(\d{2})-EL-/,'$1-');
   const classCodeRe=/^\d{2}-[A-Za-z0-9]+-\d{2}$/;
   function ensureUI(){
     const page=document.getElementById('classes'); if(!page||document.getElementById('classImportBtn')) return;
@@ -37,10 +38,7 @@
           const birthday=norm(rows[sr]?.[c+2]);
           const school=norm(rows[sr]?.[c+3]);
           const parentPhone=norm(rows[sr]?.[c+4]);
-          if(!chinese&&!english){
-            if(students.length) break;
-            continue;
-          }
+          if(!chinese&&!english){if(students.length) break;continue;}
           if(classCodeRe.test(chinese)) break;
           students.push({chinese,english,birthday,school,parentPhone});
         }
@@ -51,8 +49,10 @@
   }
   function mergeClass(incoming){
     state.classes=state.classes||[];
-    let c=state.classes.find(x=>norm(x.code)===incoming.code);
-    if(!c){ c={id:Date.now()+Math.floor(Math.random()*100000),code:incoming.code,name:incoming.name,students:[],studentDetails:[]}; state.classes.push(c); }
+    const ck=canonicalCode(incoming.code);
+    let c=state.classes.find(x=>canonicalCode(x.code)===ck);
+    if(!c){ c={id:Date.now()+Math.floor(Math.random()*100000),code:ck,name:incoming.name,students:[],studentDetails:[]}; state.classes.push(c); }
+    else if(/^\d{2}-EL-/i.test(norm(c.code))) c.code=ck;
     c.name=incoming.name||c.name; c.status=incoming.status||c.status; c.start=(incoming.period||'').split(/[-~～]/)[0]?.trim()||c.start; c.end=(incoming.period||'').split(/[-~～]/)[1]?.trim()||c.end;
     c.schedule=incoming.schedule||c.schedule; c.teacher=incoming.teacher||c.teacher; c.admin=incoming.admin||c.admin||'Polly'; c.studentDetails=c.studentDetails||[]; c.students=c.students||[];
     for(const s of incoming.studentDetails){
@@ -66,6 +66,7 @@
     localStorage.setItem(KEY,JSON.stringify(state));
     if(typeof saveState==='function') try{saveState();}catch(e){console.warn(e);}
     if(typeof pushToSupabase==='function') try{await pushToSupabase();}catch(e){console.warn(e);}
+    if(typeof window.PollyDedupeClasses==='function') try{window.PollyDedupeClasses();}catch(e){}
     if(typeof renderClasses==='function') renderClasses();
   }
   async function importFile(e){
